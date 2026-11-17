@@ -785,31 +785,55 @@ async function fetchFragrantica(){
   }finally{if(alive())btn.disabled=false}
 }
 
-async function fetchScentido(){
-  collect(); const url=draft.scentidoUrl; const info=parseScen(url);
-  if(!info){setStatus("Esse não parece um link de perfume do Scentido (…/perfumes-referencia/… ou …/perfumes-contratipos/…).","err");return}
-  const btn=$("b-scen"); btn.disabled=true;
-  setStatus(`<span class="spin"></span>O Gemini está lendo a página do Scentido…`);
-  const prompt=`Você ajuda um casal brasileiro a encontrar contratipos (perfumes inspirados). Leia a página do Scentido ${url}, que é a ficha de ${info.tipo==="contratipo"?"um contratipo":"um perfume original"} (identificador "${info.slug}").
-Liste os contratipos que a página mostra, com a % de semelhança, o preço em reais e o link da ficha de cada um no Scentido, quando aparecerem. Use só o que estiver na página; não invente preços nem porcentagens.
-${info.tipo==="contratipo"?"Como é a página de um contratipo, informe também em qual perfume original ele é inspirado em \"inspiradoEm\" no formato \"Nome (Marca)\" e liste outros contratipos do mesmo original.":""}
+function scenPrompt(url,info,web){
+  const alvo=draft.nome?`${draft.nome}${draft.marca?" de "+draft.marca:""}`:info.slug;
+  return `Você ajuda um casal brasileiro a encontrar contratipos (perfumes inspirados). Página do Scentido: ${url}, ficha de ${info.tipo==="contratipo"?"um contratipo":"um perfume original"} (identificador "${info.slug}"; perfume: ${alvo}).
+${web?"Leia essa página e liste os contratipos que ela mostra, com a % de semelhança, o preço em reais e o link da ficha de cada um no Scentido, quando aparecerem. Use só o que estiver na página; não invente preços nem porcentagens.":"Sem abrir a página, liste contratipos conhecidos e vendidos no Brasil para esse perfume (marcas como Maison Alhambra, Lattafa, Armaf, Afnan, Rayhaan, Paris Elysees, In The Box, Wepink e outras). Deixe preco, semelhanca e url vazios: não invente. Se não conhecer o perfume com segurança, devolva a lista vazia."}
+${info.tipo==="contratipo"?"Como é a ficha de um contratipo, informe também em qual perfume original ele é inspirado em \"inspiradoEm\" no formato \"Nome (Marca)\" e liste outros contratipos do mesmo original.":""}
 Responda SOMENTE com um JSON, sem texto antes ou depois:
 {"nome":"","marca":"","inspiradoEm":"","contratipos":[{"nome":"","marca":"","semelhanca":85,"preco":199,"url":""}]}
 "nome" e "marca" são do perfume da página. Até 12 contratipos, os mais parecidos primeiro.`;
+}
+function applyScen(j,info){
+  if(!j)return 0;
+  const num=v=>v!=null&&v!==""&&!isNaN(Number(v))?Number(v):"";
+  const list=(j.contratipos||[]).filter(d=>d&&d.nome).slice(0,12).map(d=>({nome:String(d.nome),marca:String(d.marca||""),semelhanca:num(d.semelhanca)!==""?Math.round(num(d.semelhanca)):"",preco:num(d.preco),url:/^https?:\/\//.test(d.url||"")?String(d.url):""}));
+  if(!list.length)return 0;
+  draft.contratipos=list;
+  const fill=(id,v)=>{const el=$(id);if(el&&v&&!el.value)el.value=v};
+  fill("f-nome",j.nome);fill("f-marca",j.marca);
+  if(info.tipo==="contratipo"){fill("f-insp",j.inspiradoEm);const fc=$("f-cat");if(fc&&!fc.value)fc.value="Contratipo"}
+  drawPreview(); return list.length;
+}
+let scenRun=0;
+async function fetchScentido(){
+  collect(); const url=draft.scentidoUrl; const info=parseScen(url);
+  if(!info){setStatus("Esse não parece um link de perfume do Scentido (…/perfumes-referencia/… ou …/perfumes-contratipos/…).","err");return}
+  const run=++scenRun, myDraft=draft, alive=()=>run===scenRun&&draft===myDraft&&$("pf");
+  const btn=$("b-scen"); btn.disabled=true; let webDone=false;
+  setStatus(`<span class="spin"></span>Buscando contratipos…`);
+  // 1) Sugestões rápidas, sem abrir a página.
+  const fast=askGemini(scenPrompt(url,info,false),"fast",30000).then(r=>{
+    if(!alive()||webDone)return;
+    const n=applyScen(r.json,info);
+    if(n){setStatus(`<span class="spin"></span>${n} sugestões prévias. Lendo a página do Scentido para trazer % de semelhança e preços…`,"ok");btn.disabled=false}
+  }).catch(()=>{});
+  // 2) Leitura da página real, que substitui as sugestões prévias.
   try{
-    const r=await askGemini(prompt);
+    const r=await askGemini(scenPrompt(url,info,true),"web",90000);
+    webDone=true;
+    if(!alive())return;
     renderGrounding($("gsrc"),r.grounding);
-    const j=r.json||{};
-    const num=v=>v!=null&&v!==""&&!isNaN(Number(v))?Number(v):"";
-    const list=(j.contratipos||[]).filter(d=>d&&d.nome).slice(0,12).map(d=>({nome:String(d.nome),marca:String(d.marca||""),semelhanca:num(d.semelhanca)!==""?Math.round(num(d.semelhanca)):"",preco:num(d.preco),url:/^https?:\/\//.test(d.url||"")?String(d.url):""}));
-    draft.contratipos=list;
-    const fill=(id,v)=>{if(v&&!$(id).value)$(id).value=v};
-    fill("f-nome",j.nome);fill("f-marca",j.marca);
-    if(info.tipo==="contratipo"){fill("f-insp",j.inspiradoEm);if(!$("f-cat").value)$("f-cat").value="Contratipo"}
-    drawPreview();
-    setStatus(list.length?`${list.length} contratipos encontrados. Salvem para guardar.`:"O Gemini não encontrou contratipos nessa página.",list.length?"ok":"err");
-  }catch(e){setStatus(aiErr(e),"err")}
-  finally{btn.disabled=false}
+    const n=applyScen(r.json,info);
+    if(n)setStatus(`${n} contratipos lidos do Scentido. Salvem para guardar.`,"ok");
+    else if((draft.contratipos||[]).length)setStatus("Não encontrei contratipos na página; ficaram as sugestões prévias (sem preços).","ok");
+    else setStatus("O Gemini não encontrou contratipos para esse perfume.","err");
+  }catch(e){
+    webDone=true; await fast;
+    if(!alive())return;
+    if((draft.contratipos||[]).length)setStatus("Não consegui abrir a página do Scentido; ficaram as sugestões prévias (sem preços nem % de semelhança).","ok");
+    else setStatus(aiErr(e),"err");
+  }finally{if(alive())btn.disabled=false}
 }
 
 async function searchPrices(id){
