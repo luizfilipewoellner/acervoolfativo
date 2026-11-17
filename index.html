@@ -343,6 +343,8 @@ const FIREBASE_CONFIG = {
 const GEMINI_MODEL = "gemini-3.8-flash";
 // 3) Pesquisa Google dentro do Gemini: só funciona no plano pago (Blaze). No plano gratuito, deixe false.
 const USE_GOOGLE_SEARCH = false;
+// 4) Modelo rápido para o preenchimento inicial (sem abrir páginas).
+const GEMINI_FAST_MODEL = "gemini-3.5-flash-lite";
 const FB = "https://www.gstatic.com/firebasejs/13.1.0/";
 
 /* ---------- nuvem (Firebase) ---------- */
@@ -434,19 +436,30 @@ $("l-reset").onclick=async()=>{
 function logout(){closeLayer();fb.signOut&&fb.signOut(fb.auth)}
 
 /* ---------- Gemini (Firebase AI Logic) ---------- */
-let aiModel=null;
-async function gemini(){
-  if(aiModel)return aiModel;
-  const m=await import(FB+"firebase-ai.js");
-  const ai=m.getAI(fb.fapp,{backend:new m.GoogleAIBackend()});
-  const tools=[{urlContext:{}}]; if(USE_GOOGLE_SEARCH)tools.push({googleSearch:{}});
-  aiModel=m.getGenerativeModel(ai,{model:GEMINI_MODEL,tools});
-  return aiModel;
+let aiMod=null; const aiModels={};
+async function gemini(kind){
+  if(aiModels[kind])return aiModels[kind];
+  if(!aiMod)aiMod=await import(FB+"firebase-ai.js");
+  const m=aiMod, ai=m.getAI(fb.fapp,{backend:new m.GoogleAIBackend()});
+  const TL=m.ThinkingLevel||{};
+  let cfg;
+  if(kind==="fast")cfg={model:GEMINI_FAST_MODEL,generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
+  else{const tools=[{urlContext:{}}];if(USE_GOOGLE_SEARCH)tools.push({googleSearch:{}});cfg={model:GEMINI_MODEL,tools,generationConfig:{thinkingConfig:{thinkingLevel:TL.LOW||"LOW"}}}}
+  aiModels[kind]={m,ai,cfg,model:m.getGenerativeModel(ai,cfg)};
+  return aiModels[kind];
 }
-async function askGemini(prompt){
+// kind: "web" (lê páginas) ou "fast" (só conhecimento do modelo, bem mais rápido)
+async function askGemini(prompt,kind="web",timeoutMs=90000){
   if(!fb.fapp)throw new Error("offline");
-  const model=await gemini();
-  const r=await model.generateContent(prompt);
+  const g=await gemini(kind);
+  const run=mdl=>Promise.race([mdl.generateContent(prompt),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),timeoutMs))]);
+  let r;
+  try{r=await run(g.model)}
+  catch(e){
+    // Se o modelo não aceitar o ajuste de raciocínio, tenta de novo sem ele.
+    if(/thinking/i.test(String(e?.message||""))){const {generationConfig,...rest}=g.cfg;g.model=g.m.getGenerativeModel(g.ai,rest);g.cfg=rest;r=await run(g.model)}
+    else throw e;
+  }
   const resp=r.response;
   let text=""; try{text=resp.text()}catch(e){}
   return {text,json:parseJSON(text),grounding:resp.candidates?.[0]?.groundingMetadata||null};
@@ -465,6 +478,8 @@ function aiErr(e){
   if(/\b(429|quota|RESOURCE_EXHAUSTED|rate[- ]?limit)\b/i.test(m))return "O Gemini recusou por limite de uso. Se isso aparece logo na primeira busca, o recurso pedido não está no plano gratuito."+det;
   if(/not.*enabled|has not been used|PERMISSION_DENIED|\b403\b|api-not-enabled|API key not valid|referer/i.test(m))return "O Gemini não está liberado para este app (AI Logic desativado ou chave da API restrita)."+det;
   if(/offline|network|Failed to fetch/i.test(m))return "Sem internet para consultar o Gemini."+det;
+  if(/^timeout$/.test(m))return "O Gemini demorou demais para responder. Tente de novo."+det;
+  if(/App Check/i.test(m))return "O App Check está bloqueando o Gemini. Desative a exigência para o AI Logic no console do Firebase (App Check → APIs)."+det;
   if(/not found|\b404\b|is not supported|unsupported model/i.test(m))return "O modelo do Gemini configurado não está disponível. Troque GEMINI_MODEL no index.html."+det;
   return "Não consegui consultar o Gemini agora. Tente de novo ou preencha à mão."+det;
 }
@@ -720,32 +735,54 @@ function parseScen(url){try{const u=new URL(url);if(!/scentido\./.test(u.hostnam
 
 const ACC_RULES=`Regras: nomes de acordes e notas em português do Brasil e em minúsculas (ex.: "amadeirado","cítrico","fresco especiado","quente especiado","âmbar","baunilha","doce","aromático","couro","almiscarado","aquático","frutado","atalcado"); até 10 acordes; "concentracao" deve ser um de: Eau de Cologne, Eau de Toilette, Eau de Parfum, Parfum, Extrait de Parfum, Elixir, ou vazio; se o perfume não tiver pirâmide dividida, coloque todas as notas em "coracao". Não invente: se não encontrar a informação, deixe a lista vazia.`;
 
+function fragPrompt(url,info,web){
+  return `Você organiza fichas de perfumes para um app brasileiro. Perfume "${info.nome}", marca "${info.marca}" (ficha no Fragrantica: ${url}).
+${web?"Leia essa página do Fragrantica. Se não conseguir abrir, use o que você sabe sobre esse perfume.":"Responda com o que você sabe sobre esse perfume, reproduzindo da forma mais fiel possível os acordes e a pirâmide da ficha dele no Fragrantica. Se não conhecer o perfume com segurança, devolva listas vazias e \"conhecido\": false."}
+Acordes principais na ordem de intensidade (o primeiro é o mais forte), cada um com uma porcentagem de 0 a 100 proporcional à barra, com 100 para o primeiro. Também a pirâmide olfativa (saída, coração, fundo), o ano, o perfumista, a concentração e a família olfativa.
+Responda SOMENTE com um JSON, sem nenhum texto antes ou depois, neste formato:
+{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]},"conhecido":true}
+${ACC_RULES}`;
+}
+function applyFrag(j,info,fonte){
+  if(!j||j.conhecido===false)return false;
+  const acc=(j.acordes||[]).filter(a=>a&&a.nome), np=(j.piramide?.topo||[]).length+(j.piramide?.coracao||[]).length+(j.piramide?.fundo||[]).length;
+  if(!acc.length&&!np)return false;
+  draft.acordes=acc.slice(0,10).map(a=>({nome:String(a.nome).toLowerCase(),pct:Math.max(0,Math.min(100,Math.round(Number(a.pct)||0)))}));
+  draft.piramide={topo:(j.piramide?.topo||[]).map(String),coracao:(j.piramide?.coracao||[]).map(String),fundo:(j.piramide?.fundo||[]).map(String)};
+  const fill=(id,v)=>{const el=$(id);if(el&&v&&!el.value)el.value=v};
+  fill("f-nome",j.nome||info.nome);fill("f-marca",j.marca||info.marca);fill("f-fam",j.familia);
+  const fc=$("f-conc"); if(fc&&j.concentracao&&!fc.value&&CONC.includes(j.concentracao))fc.value=j.concentracao;
+  if(j.ano)draft.ano=String(j.ano); if(j.perfumista)draft.perfumista=String(j.perfumista);
+  draft.fonteDados=fonte;
+  drawPreview(); return true;
+}
+let fragRun=0;
 async function fetchFragrantica(){
   collect(); const url=draft.fragranticaUrl; const info=parseFrag(url);
   if(!info){setStatus("Esse não parece um link de perfume do Fragrantica (…/perfume/Marca/Nome-123.html).","err");return}
-  const btn=$("b-frag"); btn.disabled=true;
-  setStatus(`<span class="spin"></span>O Gemini está lendo a ficha no Fragrantica…`);
-  const prompt=`Você organiza fichas de perfumes para um app brasileiro. Leia a página do Fragrantica ${url} (perfume "${info.nome}", marca "${info.marca}"). ${USE_GOOGLE_SEARCH?"Se não conseguir abrir a página, pesquise no Google a ficha desse perfume no Fragrantica.":"Se não conseguir abrir a página, use o que você sabe sobre esse perfume e sua ficha no Fragrantica; se não conhecer o perfume, devolva listas vazias."}
-Extraia os acordes principais na ordem em que aparecem (o primeiro é o mais forte); dê a cada um uma porcentagem de 0 a 100 proporcional à barra, com 100 para o primeiro. Extraia também a pirâmide olfativa (saída, coração, fundo), o ano, o perfumista, a concentração e a família olfativa.
-Responda SOMENTE com um JSON, sem nenhum texto antes ou depois, neste formato:
-{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]}}
-${ACC_RULES}`;
+  const run=++fragRun, myDraft=draft, alive=()=>run===fragRun&&draft===myDraft&&$("pf");
+  const btn=$("b-frag"); btn.disabled=true; let webDone=false;
+  setStatus(`<span class="spin"></span>Preenchendo…`);
+  // 1) Preenchimento rápido, sem abrir a página (alguns segundos).
+  const fast=askGemini(fragPrompt(url,info,false),"fast",30000).then(r=>{
+    if(alive()&&!webDone&&applyFrag(r.json,info,"Preenchido pelo Gemini. Confiram no Fragrantica.")){
+      setStatus(`<span class="spin"></span>Preenchido. Conferindo na página do Fragrantica; já dá para salvar se quiserem.`,"ok");btn.disabled=false;
+    }
+  }).catch(()=>{});
+  // 2) Leitura da página real, em segundo plano, que substitui o preenchimento rápido.
   try{
-    const r=await askGemini(prompt);
-    renderGrounding($("gsrc"),r.grounding);
-    const j=r.json;
-    if(!j||(!(j.acordes||[]).length&&!((j.piramide?.topo||[]).length+(j.piramide?.coracao||[]).length+(j.piramide?.fundo||[]).length))){setStatus("O Gemini não encontrou os dados desse perfume. Tente de novo ou preencha à mão.","err");return}
-    draft.acordes=(j.acordes||[]).filter(a=>a&&a.nome).slice(0,10).map(a=>({nome:String(a.nome).toLowerCase(),pct:Math.max(0,Math.min(100,Math.round(Number(a.pct)||0)))}));
-    draft.piramide={topo:(j.piramide?.topo||[]).map(String),coracao:(j.piramide?.coracao||[]).map(String),fundo:(j.piramide?.fundo||[]).map(String)};
-    const fill=(id,v)=>{if(v&&!$(id).value)$(id).value=v};
-    fill("f-nome",j.nome||info.nome);fill("f-marca",j.marca||info.marca);fill("f-fam",j.familia);
-    if(j.concentracao&&!$("f-conc").value&&CONC.includes(j.concentracao))$("f-conc").value=j.concentracao;
-    if(j.ano)draft.ano=String(j.ano); if(j.perfumista)draft.perfumista=String(j.perfumista);
-    draft.fonteDados="Acordes e pirâmide preenchidos pelo Gemini a partir do Fragrantica. Confiram no site.";
-    drawPreview();
-    setStatus("Pronto. Confiram os dados e salvem.","ok");
-  }catch(e){setStatus(aiErr(e),"err")}
-  finally{btn.disabled=false}
+    const r=await askGemini(fragPrompt(url,info,true),"web",90000);
+    webDone=true;
+    if(!alive())return;
+    if(applyFrag(r.json,info,"Acordes e pirâmide lidos do Fragrantica pelo Gemini. Confiram no site."))setStatus("Pronto: conferido na página do Fragrantica. Confiram e salvem.","ok");
+    else if(!(draft.acordes||[]).length)setStatus("O Gemini não encontrou os dados desse perfume. Tente de novo ou preencha à mão.","err");
+    else setStatus("Não consegui conferir na página; os dados preenchidos vieram do conhecimento do Gemini.","ok");
+  }catch(e){
+    webDone=true; await fast;
+    if(!alive())return;
+    if((draft.acordes||[]).length)setStatus("Não consegui abrir a página do Fragrantica; os dados vieram do conhecimento do Gemini. Confiram antes de salvar.","ok");
+    else setStatus(aiErr(e),"err");
+  }finally{if(alive())btn.disabled=false}
 }
 
 async function fetchScentido(){
