@@ -66,6 +66,16 @@ main{padding-block:22px 60px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;text-align:left;transition:transform .15s,border-color .15s}
 .card:hover{transform:translateY(-2px);border-color:var(--muted)}
 .card .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card .ph{margin:-16px -16px 2px;height:190px;border-radius:var(--r) var(--r) 0 0;background:var(--sunk);display:grid;place-items:center;overflow:hidden}
+.card .ph img{width:100%;height:100%;object-fit:contain;padding:8px;box-sizing:border-box}
+.card .ph svg{height:118px;width:auto}
+.dphoto{margin:14px 0 4px;border-radius:var(--r);background:var(--sunk);display:grid;place-items:center;overflow:hidden;max-height:340px}
+.dphoto img{width:100%;max-height:340px;object-fit:contain}
+.photofield{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.photofield .thumb{width:78px;height:96px;border-radius:10px;background:var(--sunk);display:grid;place-items:center;overflow:hidden;flex:none}
+.photofield .thumb img{width:100%;height:100%;object-fit:cover}.photofield .thumb svg{height:70px}
+.photofield .pfb{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
+.photofield .pfb .links{gap:6px}
 .card h3{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.15;margin:0;text-wrap:balance}
 .card .marca{color:var(--muted);font-size:13px;margin-top:-6px}
 .strip{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--sunk)}
@@ -387,6 +397,7 @@ function startData(){
     showNotice(err.code==="permission-denied"?"Este e-mail ainda não tem acesso à coleção. Inclua-o nas regras do Firestore (veja o LEIA-ME).":"Não foi possível acessar a coleção agora.");
     render();
   }));
+  unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","config"),sn=>{appCfg=sn.exists()?sn.data():{};render();refreshOpenDetail()},()=>{}));
   unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","borji"),sn=>{
     const d=sn.exists()?sn.data():null;
     if(d&&Array.isArray(d.itens)&&(!borji||(d.atualizadoEm||0)>=(borji.atualizadoEm||0))){borji=d;render();refreshOpenDetail()}
@@ -444,6 +455,7 @@ async function gemini(kind){
   const TL=m.ThinkingLevel||{};
   let cfg;
   if(kind==="fast")cfg={model:GEMINI_FAST_MODEL,generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
+  else if(kind==="webfast")cfg={model:GEMINI_FAST_MODEL,tools:[{urlContext:{}}],generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
   else{const tools=[{urlContext:{}}];if(USE_GOOGLE_SEARCH)tools.push({googleSearch:{}});cfg={model:GEMINI_MODEL,tools,generationConfig:{thinkingConfig:{thinkingLevel:TL.LOW||"LOW"}}}}
   aiModels[kind]={m,ai,cfg,model:m.getGenerativeModel(ai,cfg)};
   return aiModels[kind];
@@ -457,7 +469,10 @@ async function askGemini(prompt,kind="web",timeoutMs=90000){
   try{r=await run(g.model)}
   catch(e){
     // Se o modelo não aceitar o ajuste de raciocínio, tenta de novo sem ele.
-    if(/thinking/i.test(String(e?.message||""))){const {generationConfig,...rest}=g.cfg;g.model=g.m.getGenerativeModel(g.ai,rest);g.cfg=rest;r=await run(g.model)}
+    const msg=String(e?.message||"");
+    if(/thinking/i.test(msg)){const {generationConfig,...rest}=g.cfg;g.model=g.m.getGenerativeModel(g.ai,rest);g.cfg=rest;r=await run(g.model)}
+    // Se o modelo rápido não conseguir ler páginas, usa o modelo principal.
+    else if(kind==="webfast"&&!/^timeout$|\b429\b|quota|RESOURCE_EXHAUSTED|App Check|offline|Failed to fetch/i.test(msg))return askGemini(prompt,"web",timeoutMs);
     else throw e;
   }
   const resp=r.response;
@@ -542,6 +557,7 @@ function card(p){
   const strip=acc.length?`<div class="strip" aria-hidden="true">${acc.map(a=>`<span style="width:${(Number(a.pct)||0)/tot*100}%;background:${accColor(a.nome)}"></span>`).join("")}</div>`:"";
   const notes=acc.slice(0,3).map(a=>`<span class="chip">${esc(a.nome)}</span>`).join("");
   return `<button class="card" data-id="${esc(p.id)}">
+    <div class="ph">${photoOf(p)?`<img src="${esc(photoOf(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(bottleEl('${esc(accColor((p.acordes||[])[0]?.nome||""))}'))">`:bottleSvg(p)}</div>
     <div class="meta"><span>${esc(p.concentracao||"")}</span><span>${p.tamanhoMl?esc(p.tamanhoMl)+" ml":""}</span></div>
     <h3>${esc(p.nome||"Sem nome")}</h3><div class="marca">${esc(p.marca||"")}</div>
     ${strip}
@@ -549,6 +565,42 @@ function card(p){
     <div class="chips">${p.categoria?`<span class="chip cat">${esc(p.categoria)}</span>`:""}${p.dono?`<span class="chip dono">${esc(DONO[p.dono]||p.dono)}</span>`:""}${borjiMatches(p).some(x=>!x.self)?'<span class="chip borji">na Borji</span>':''}${notes}</div>
     <div class="foot"><span>${p.inspiradoEm?"↳ "+esc(p.inspiradoEm):""}</span><span>${(p.contratipos||[]).length?esc(p.contratipos.length)+" contratipos":""}</span></div>
   </button>`;
+}
+
+/* ---------- fotos ---------- */
+const BORJI_IMG_PADRAO="https://assets-borjieco.fluxocore.com/v1/pro_2020_e.jpg";
+let appCfg={};
+const isBorji=p=>/borji/.test(plain(p.marca||""));
+function fragImg(u){const m=String(u||"").match(/fragrantica\.[^/]+\/perfume\/[^?#]*?-(\d+)\.html/i);return m?`https://fimgs.net/mdimg/perfume/375x500.${m[1]}.jpg`:""}
+// Ordem: foto de vocês > link de imagem > embalagem Borji > foto do Fragrantica
+function photoOf(p){return p.foto||p.fotoUrl||(isBorji(p)?(appCfg.borjiImg||BORJI_IMG_PADRAO):"")||fragImg(p.fragranticaUrl)||""}
+function bottleSvg(p){
+  const c=accColor((p.acordes||[])[0]?.nome||"")||"#d683a8";
+  return `<svg viewBox="0 0 80 110" aria-hidden="true"><rect x="28" y="4" width="24" height="20" rx="3" fill="#c9a24f"/><rect x="33" y="24" width="14" height="8" fill="#e9d9a6"/><path d="M16 40c0-5 4-8 8-8h32c4 0 8 3 8 8v58c0 5-4 8-8 8H24c-4 0-8-3-8-8z" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/><path d="M20 60h40v36c0 4-3 6-6 6H26c-3 0-6-2-6-6z" fill="${c}" opacity=".85"/><rect x="23" y="44" width="5" height="48" rx="2.5" fill="#fff" opacity=".55"/></svg>`;
+}
+function bottleEl(c){const d=document.createElement("div");d.innerHTML=bottleSvg({acordes:[{nome:""}]}).replace(/fill="#[0-9a-f]{6}" opacity=".85"/i,`fill="${c}" opacity=".85"`);return d.firstChild}
+function drawThumb(){
+  const t=$("f-thumb"); if(!t)return;
+  const own=draft.foto||draft.fotoUrl;
+  const v=i=>($(i)?.value||"").trim();
+  const src=own||photoOf({marca:v("f-marca")||draft.marca,fragranticaUrl:v("f-frag")||draft.fragranticaUrl});
+  t.innerHTML=src?`<img src="${esc(src)}" alt="" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML=bottleSvg(draft)">`:bottleSvg(draft);
+  const r=$("f-nofoto"); if(r)r.hidden=!own;
+  const h=$("f-fotohint"); if(h)h.textContent=own?"Foto de vocês":src?(isBorji({marca:v("f-marca")||draft.marca})?"Embalagem padrão da Borji":"Foto do Fragrantica, automática"):"Sem foto";
+}
+// Reduz a foto para caber no banco (cerca de 30–60 KB), mantendo boa qualidade na tela do celular.
+async function shrinkPhoto(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+    const MAX=520, k=Math.min(1,MAX/Math.max(img.naturalWidth,img.naturalHeight));
+    const w=Math.max(1,Math.round(img.naturalWidth*k)), h=Math.max(1,Math.round(img.naturalHeight*k));
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    const cx=cv.getContext("2d"); cx.fillStyle="#ffffff"; cx.fillRect(0,0,w,h); cx.drawImage(img,0,0,w,h);
+    let q=0.8, out=cv.toDataURL("image/jpeg",q);
+    while(out.length>120000&&q>0.4){q-=0.1;out=cv.toDataURL("image/jpeg",q)}
+    return out;
+  }finally{URL.revokeObjectURL(url)}
 }
 
 /* ---------- ficha ---------- */
@@ -576,6 +628,7 @@ function openDetail(id,keepScroll){
     <div class="sheet-head"><div><div class="eyebrow">${p.tipo==="desejo"?"Lista de desejos":"Na coleção"}</div>
       <h2>${esc(p.nome)}</h2><div class="sub">${esc(p.marca||"")}${p.inspiradoEm?` · inspirado em ${esc(p.inspiradoEm)}`:""}</div></div>
       <button class="btn ghost" onclick="closeLayer()" aria-label="Fechar">✕</button></div>
+    ${photoOf(p)?`<div class="dphoto"><img src="${esc(photoOf(p))}" alt="Foto de ${esc(p.nome)}" referrerpolicy="no-referrer" onerror="this.parentNode.remove()"></div>`:""}
     ${kv.length?`<section class="blk"><div class="kv">${kv.map(([k,v])=>`<div><small>${k}</small>${esc(v)}</div>`).join("")}</div></section>`:""}
     ${p.tipo==="desejo"?priceSection(p):""}
     <section class="blk"><h4>Acordes principais</h4>${acc.length?`<div class="accords">${acc.map(a=>{const c=accColor(a.nome);return `<div class="acc" style="width:${Math.max(28,(Number(a.pct)||0)/max*100)}%;background:${c};color:${inkOn(c)}">${esc(a.nome)}</div>`}).join("")}</div>`:`<div class="notice">Sem acordes ainda. Edite e cole o link do Fragrantica para preencher.</div>`}</section>
@@ -684,6 +737,13 @@ function openForm(id,preset){
         <div class="status" id="fstatus">Cole um link e toque em buscar: o Gemini preenche os campos para vocês conferirem antes de salvar.</div>
         <div id="gsrc"></div>
       </div>
+      <div class="fieldset"><div class="photofield">
+        <div class="thumb" id="f-thumb"></div>
+        <div class="pfb"><div class="eyebrow">Foto do frasco · <span id="f-fotohint"></span></div>
+          <div class="links"><label class="btn" for="f-file">Tirar ou escolher foto</label><button type="button" class="btn ghost" id="f-nofoto">Remover</button></div>
+          <input type="file" id="f-file" accept="image/*" hidden>
+          <input id="f-fotourl" type="url" inputmode="url" placeholder="ou cole o link de uma imagem" value="${esc(draft.fotoUrl||"")}">
+        </div></div></div>
       <div class="fieldset">
         <div class="row"><label>Nome<input id="f-nome" required value="${esc(draft.nome||"")}"></label><label>Marca<input id="f-marca" value="${esc(draft.marca||"")}"></label></div>
         <div class="row"><label>Categoria<select id="f-cat"><option value=""></option>${CATS.map(c=>`<option ${draft.categoria===c?"selected":""}>${c}</option>`).join("")}</select></label>
@@ -697,7 +757,14 @@ function openForm(id,preset){
       <div class="fieldset" id="preview"></div>
       <div class="actions"><button class="btn primary" type="submit" id="b-save">Salvar</button><button class="btn" type="button" onclick="closeLayer()">Cancelar</button></div>
     </form>`);
-  drawPreview();
+  drawPreview(); drawThumb();
+  $("f-file").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+    setStatus(`<span class="spin"></span>Preparando a foto…`);
+    try{draft.foto=await shrinkPhoto(f);$("f-fotourl").value="";draft.fotoUrl="";drawThumb();setStatus("Foto adicionada. Salvem para guardar.","ok")}
+    catch(err){setStatus("Não consegui abrir essa imagem. Tente outra foto (JPG ou PNG).","err")}};
+  $("f-fotourl").oninput=e=>{draft.fotoUrl=e.target.value.trim();if(draft.fotoUrl)draft.foto="";drawThumb()};
+  ["f-frag","f-marca"].forEach(i=>$(i).addEventListener("input",()=>drawThumb()));
+  $("f-nofoto").onclick=()=>{draft.foto="";draft.fotoUrl="";$("f-fotourl").value="";drawThumb()};
   document.querySelectorAll('input[name="tipo"]').forEach(r=>r.onchange=()=>{draft.tipo=r.value;$("l-preco").hidden=r.value!=="desejo"});
   document.querySelectorAll('input[name="dono"]').forEach(r=>r.onchange=()=>draft.dono=r.value);
   $("b-frag").onclick=()=>fetchFragrantica();
@@ -714,7 +781,7 @@ function openForm(id,preset){
 function collect(){
   const v=i=>$(i).value.trim();
   Object.assign(draft,{fragranticaUrl:v("f-frag"),scentidoUrl:v("f-scen"),nome:v("f-nome"),marca:v("f-marca"),categoria:v("f-cat"),concentracao:v("f-conc"),
-    inspiradoEm:v("f-insp"),familia:v("f-fam"),tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com")});
+    inspiradoEm:v("f-insp"),familia:v("f-fam"),tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com"),fotoUrl:/^https?:\/\//.test(v("f-fotourl"))?v("f-fotourl"):""});
 }
 function drawPreview(){
   const el=$("preview"); if(!el)return;
@@ -792,7 +859,7 @@ ${web?"Leia essa página e liste os contratipos que ela mostra, com a % de semel
 ${info.tipo==="contratipo"?"Como é a ficha de um contratipo, informe também em qual perfume original ele é inspirado em \"inspiradoEm\" no formato \"Nome (Marca)\" e liste outros contratipos do mesmo original.":""}
 Responda SOMENTE com um JSON, sem texto antes ou depois:
 {"nome":"","marca":"","inspiradoEm":"","contratipos":[{"nome":"","marca":"","semelhanca":85,"preco":199,"url":""}]}
-"nome" e "marca" são do perfume da página. Até 12 contratipos, os mais parecidos primeiro.`;
+"nome" e "marca" são do perfume da página. Até 10 contratipos, os mais parecidos primeiro.`;
 }
 function applyScen(j,info){
   if(!j)return 0;
@@ -820,7 +887,7 @@ async function fetchScentido(){
   }).catch(()=>{});
   // 2) Leitura da página real, que substitui as sugestões prévias.
   try{
-    const r=await askGemini(scenPrompt(url,info,true),"web",90000);
+    const r=await askGemini(scenPrompt(url,info,true),"webfast",60000);
     webDone=true;
     if(!alive())return;
     renderGrounding($("gsrc"),r.grounding);
@@ -848,7 +915,7 @@ Responda SOMENTE com um JSON, sem texto antes ou depois:
 {"ofertas":[{"loja":"","preco":0,"titulo":"descrição curta com o tamanho","url":"link da oferta"}]}
 Até 8 ofertas, da mais barata para a mais cara, preço em reais como número. Se não encontrar, devolva {"ofertas":[]}.`;
   try{
-    const r=await askGemini(prompt);
+    const r=await askGemini(prompt,"webfast",60000);
     const of=(r.json?.ofertas||[]).filter(o=>o&&o.loja&&Number(o.preco)>0).slice(0,8).map(o=>({loja:String(o.loja),preco:Number(o.preco),titulo:String(o.titulo||"").slice(0,90),url:/^https?:\/\//.test(o.url||"")?String(o.url):""}));
     const {id:_,...d}=p; d.precos={data:Date.now(),fonte:USE_GOOGLE_SEARCH?"Gemini + Pesquisa Google":"Gemini (Zoom e Buscapé)",ofertas:of,...slimGrounding(r.grounding)};
     await save(id,d);
@@ -870,9 +937,20 @@ function openMenu(){
     <section class="blk"><h4>Catálogo Borji &amp; Co</h4>
       <p class="sub">${borji?`${esc(borji.itens.length)} perfumes · atualizado em ${esc(quando)}`:"Ainda não carregado."}</p>
       <button class="btn" id="b-borji" onclick="refreshBorji()">Atualizar com o Gemini</button>
-      <div class="status" id="bstatus"></div></section>
+      <div class="status" id="bstatus"></div>
+      <form id="bimg" class="fieldset" style="margin-top:14px">
+        <div class="photofield"><div class="thumb"><img id="bimg-prev" src="${esc(appCfg.borjiImg||BORJI_IMG_PADRAO)}" alt="" referrerpolicy="no-referrer" onerror="this.replaceWith(bottleEl('#d683a8'))"></div>
+        <div class="pfb"><div class="eyebrow">Imagem usada nos perfumes Borji</div>
+          <input id="bimg-url" type="url" inputmode="url" placeholder="Link da imagem" value="${esc(appCfg.borjiImg||BORJI_IMG_PADRAO)}">
+          <div class="links"><button class="btn" type="submit">Salvar imagem</button></div></div></div>
+        <div class="sub" style="font-size:12px">No site da Borji, toque e segure a foto de um frasco e escolha "Copiar endereço da imagem".</div>
+      </form></section>
     <div class="actions"><button class="btn danger" onclick="logout()">Sair da conta</button></div>`);
   $("imp").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
+  $("bimg-url").oninput=e=>{const pv=$("bimg-prev");if(pv)pv.src=e.target.value.trim()};
+  $("bimg").onsubmit=e=>{e.preventDefault();const u=$("bimg-url").value.trim();
+    if(u&&!/^https?:\/\//.test(u)){toast("Cole um link que comece com https://");return}
+    fb.setDoc(fb.doc(fb.db,"lojas","config"),{...appCfg,borjiImg:u},{merge:true}).then(()=>toast("Imagem da Borji salva")).catch(()=>toast("Não foi possível salvar."))};
 }
 function exportBackup(){
   const data={app:"acervo-olfativo",versao:1,exportadoEm:new Date().toISOString(),perfumes:state.items};
