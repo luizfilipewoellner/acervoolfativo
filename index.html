@@ -491,7 +491,9 @@ async function askGemini(prompt,kind="web",timeoutMs=90000){
   }
   const resp=r.response;
   let text=""; try{text=resp.text()}catch(e){}
-  return {text,json:parseJSON(text),grounding:resp.candidates?.[0]?.groundingMetadata||null};
+  const um=resp.candidates?.[0]?.urlContextMetadata?.urlMetadata||[];
+  const urlOk=um.some(x=>/SUCCESS/i.test(String(x.urlRetrievalStatus||x.url_retrieval_status||"")));
+  return {text,json:parseJSON(text),grounding:resp.candidates?.[0]?.groundingMetadata||null,urlOk,urlTried:um.length>0};
 }
 function parseJSON(t){
   if(!t)return null;
@@ -753,6 +755,11 @@ function openForm(id,preset){
           <button type="button" class="btn" id="b-scen">Buscar contratipos</button></div>
         <div class="status" id="fstatus">Cole um link e toque em buscar: o Gemini preenche os campos para vocês conferirem antes de salvar.</div>
         <div id="gsrc"></div>
+        <button type="button" class="btn ghost" id="b-showpaste" style="align-self:flex-start;padding:4px 0;font-size:13px">Não encontrou? Colar o texto da página do Fragrantica</button>
+        <div id="pastebox" class="fieldset" hidden style="margin-top:0">
+          <label>Texto da página<textarea id="f-paste" placeholder="Abra a página do perfume no Fragrantica, selecione e copie o texto (do nome do perfume até o fim da pirâmide) e cole aqui."></textarea></label>
+          <div class="links"><button type="button" class="btn" id="b-pastebtn">Colar</button><button type="button" class="btn primary" id="b-readpaste">Ler texto colado</button></div>
+        </div>
       </div>
       <div class="fieldset"><div class="photofield">
         <div class="thumb" id="f-thumb"></div>
@@ -788,6 +795,9 @@ function openForm(id,preset){
   bindDono();
   $("b-frag").onclick=()=>fetchFragrantica();
   $("b-scen").onclick=()=>fetchScentido();
+  $("b-showpaste").onclick=()=>{$("pastebox").hidden=false;$("b-showpaste").hidden=true;$("f-paste").focus()};
+  $("b-pastebtn").onclick=async()=>{try{const t=await navigator.clipboard.readText();if(t)$("f-paste").value=t}catch(e){$("f-paste").focus();toast("Toque e segure no campo e escolha Colar.")}};
+  $("b-readpaste").onclick=()=>readPastedFrag();
   $("pf").onsubmit=async e=>{
     e.preventDefault(); collect(); if(draft.tipo!=="desejo")draft.preco="";
     if(!draft.nome){setStatus("Informe o nome do perfume.","err");$("f-nome").focus();return}
@@ -842,6 +852,30 @@ function applyFrag(j,info,fonte){
   draft.fonteDados=fonte;
   drawPreview(); return true;
 }
+function showPaste(){const b=$("pastebox"),s=$("b-showpaste");if(b){b.hidden=false;if(s)s.hidden=true}}
+async function readPastedFrag(){
+  collect();
+  const txt=($("f-paste").value||"").trim();
+  if(txt.length<80){setStatus("Cole o texto da página do perfume no campo acima.","err");return}
+  const info=parseFrag(draft.fragranticaUrl)||{nome:draft.nome||"",marca:draft.marca||""};
+  const btn=$("b-readpaste"); btn.disabled=true;
+  setStatus(`<span class="spin"></span>Lendo o texto colado…`);
+  const prompt=`Abaixo está o texto copiado da página de um perfume no Fragrantica. Extraia os dados usando SOMENTE esse texto.
+Os acordes principais aparecem como uma lista em ordem de intensidade; dê 100 ao primeiro e porcentagens decrescentes aos demais. A pirâmide aparece como notas de saída/topo, coração e fundo.
+Responda SOMENTE com um JSON, sem texto antes ou depois:
+{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]}}
+${ACC_RULES}
+
+--- TEXTO ---
+${txt.slice(0,20000)}
+--- FIM ---`;
+  try{
+    const r=await askGemini(prompt,"fast",40000);
+    if(applyFrag(r.json,info,"Acordes e pirâmide lidos do texto do Fragrantica.")){setStatus("Pronto: dados lidos do texto colado. Confiram e salvem.","ok");$("f-paste").value=""}
+    else setStatus("Não encontrei acordes nem pirâmide nesse texto. Confira se copiou a parte certa da página.","err");
+  }catch(e){setStatus(aiErr(e),"err")}
+  finally{btn.disabled=false}
+}
 let fragRun=0;
 async function fetchFragrantica(){
   collect(); const url=draft.fragranticaUrl; const info=parseFrag(url);
@@ -860,14 +894,16 @@ async function fetchFragrantica(){
     const r=await askGemini(fragPrompt(url,info,true),"webfast",90000);
     webDone=true;
     if(!alive())return;
-    if(applyFrag(r.json,info,"Acordes e pirâmide lidos do Fragrantica pelo Gemini. Confiram no site."))setStatus("Pronto: conferido na página do Fragrantica. Confiram e salvem.","ok");
-    else if(!(draft.acordes||[]).length)setStatus("O Gemini não encontrou os dados desse perfume. Tente de novo ou preencha à mão.","err");
-    else setStatus("Não consegui conferir na página; os dados preenchidos vieram do conhecimento do Gemini.","ok");
+    const opened=r.urlOk||USE_GOOGLE_SEARCH;
+    if((opened||!(draft.acordes||[]).length)&&applyFrag(r.json,info,opened?"Acordes e pirâmide lidos do Fragrantica pelo Gemini. Confiram no site.":"Preenchido pelo Gemini. Confiram no Fragrantica."))
+      setStatus(opened?"Pronto: conferido na página do Fragrantica. Confiram e salvem.":"Preenchido pelo Gemini (o Fragrantica não deixou abrir a página). Confiram antes de salvar.","ok");
+    else if(!(draft.acordes||[]).length){setStatus("O Fragrantica bloqueou a leitura automática e o Gemini não conhece esse perfume (comum em lançamentos). Use a opção de colar o texto da página, logo abaixo.","err");showPaste()}
+    else setStatus("O Fragrantica não deixou abrir a página; os dados vieram do conhecimento do Gemini. Confiram antes de salvar.","ok");
   }catch(e){
     webDone=true; await fast;
     if(!alive())return;
     if((draft.acordes||[]).length)setStatus("Não consegui abrir a página do Fragrantica; os dados vieram do conhecimento do Gemini. Confiram antes de salvar.","ok");
-    else setStatus(aiErr(e),"err");
+    else{setStatus(aiErr(e),"err");showPaste()}
   }finally{if(alive())btn.disabled=false}
 }
 
