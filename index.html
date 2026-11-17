@@ -472,7 +472,8 @@ async function askGemini(prompt,kind="web",timeoutMs=90000){
     const msg=String(e?.message||"");
     if(/thinking/i.test(msg)){const {generationConfig,...rest}=g.cfg;g.model=g.m.getGenerativeModel(g.ai,rest);g.cfg=rest;r=await run(g.model)}
     // Se o modelo rápido não conseguir ler páginas, usa o modelo principal.
-    else if(kind==="webfast"&&!/^timeout$|\b429\b|quota|RESOURCE_EXHAUSTED|App Check|offline|Failed to fetch/i.test(msg))return askGemini(prompt,"web",timeoutMs);
+    // Se o modelo leve falhar (ou a cota diária dele acabar), tenta o modelo principal, que tem cota separada.
+    else if(kind==="webfast"&&!/^timeout$|App Check|offline|Failed to fetch/i.test(msg))return askGemini(prompt,"web",timeoutMs);
     else throw e;
   }
   const resp=r.response;
@@ -490,7 +491,8 @@ function aiErr(e){
   const m=String(e?.message||e||"");
   console.error("Gemini:",e);
   const det=`<details class="errdet"><summary>Detalhes</summary>${esc(m.slice(0,600))}</details>`;
-  if(/\b(429|quota|RESOURCE_EXHAUSTED|rate[- ]?limit)\b/i.test(m))return "O Gemini recusou por limite de uso. Se isso aparece logo na primeira busca, o recurso pedido não está no plano gratuito."+det;
+  if(/per day|daily|PerDay/i.test(m)&&/\b(429|quota)\b/i.test(m))return "Acabou a cota gratuita do Gemini de hoje. Ela renova todo dia por volta das 5h (horário de Brasília). Até lá, dá para preencher à mão."+det;
+  if(/\b(429|quota|RESOURCE_EXHAUSTED|rate[- ]?limit)\b/i.test(m))return "Muitas buscas em pouco tempo. Espere um minuto e tente de novo."+det;
   if(/not.*enabled|has not been used|PERMISSION_DENIED|\b403\b|api-not-enabled|API key not valid|referer/i.test(m))return "O Gemini não está liberado para este app (AI Logic desativado ou chave da API restrita)."+det;
   if(/offline|network|Failed to fetch/i.test(m))return "Sem internet para consultar o Gemini."+det;
   if(/^timeout$/.test(m))return "O Gemini demorou demais para responder. Tente de novo."+det;
@@ -838,7 +840,7 @@ async function fetchFragrantica(){
   }).catch(()=>{});
   // 2) Leitura da página real, em segundo plano, que substitui o preenchimento rápido.
   try{
-    const r=await askGemini(fragPrompt(url,info,true),"web",90000);
+    const r=await askGemini(fragPrompt(url,info,true),"webfast",90000);
     webDone=true;
     if(!alive())return;
     if(applyFrag(r.json,info,"Acordes e pirâmide lidos do Fragrantica pelo Gemini. Confiram no site."))setStatus("Pronto: conferido na página do Fragrantica. Confiram e salvem.","ok");
@@ -990,7 +992,7 @@ ${urls.join("\n")}
 Escreva uma linha por produto, exatamente no formato abaixo, e nada mais:
 TÍTULO COMPLETO DO PRODUTO | preço em reais (0 se indisponível) | URL completa do produto
 Se uma página não existir ou não tiver produtos, ignore-a.`;
-      const r=await askGemini(prompt);
+      const r=await askGemini(prompt,"webfast",90000);
       let found=0;
       for(const line of (r.text||"").split("\n")){
         const parts=line.replace(/^[-*\d.\s]+(?=[A-Za-zÀ-ú0-9])/,"").split("|").map(s=>s.trim());
