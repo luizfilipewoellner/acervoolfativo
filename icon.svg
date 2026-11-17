@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8e3459"/><stop offset="1" stop-color="#4e1630"/></linearGradient>
+<linearGradient id="gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f8eef3"/><stop offset=".4" stop-color="#fff8fb"/><stop offset="1" stop-color="#d9bccb"/></linearGradient>
+<linearGradient id="lq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0b8cf"/><stop offset="1" stop-color="#c4577f"/></linearGradient>
+<linearGradient id="au" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6420"/><stop offset=".45" stop-color="#fff0bf"/><stop offset="1" stop-color="#7a561a"/></linearGradient>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<path d="M176 214h160l30 30v160l-30 30H176l-30-30V244z" fill="url(#gl)" stroke="#b78aa0" stroke-width="3"/>
+<path d="M162 268h188v132l-20 20H182l-20-20z" fill="url(#lq)"/>
+<path d="M188 238h136l18 18v136l-18 18H188l-18-18V256z" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="3"/>
+<rect x="184" y="236" width="20" height="164" rx="10" fill="#fff" opacity=".5"/>
+<rect x="224" y="188" width="64" height="28" rx="4" fill="url(#au)"/>
+<rect x="204" y="96" width="104" height="94" rx="14" fill="url(#au)"/>
+<path d="M392 118l6 26 26 6-26 6-6 26-6-26-26-6 26-6z" fill="#fff0c8"/>
+</svg>

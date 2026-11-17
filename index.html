@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Acervo Olfativo</title>
+<meta name="description" content="A coleção de perfumes do casal: coleção, desejos, acordes, pirâmide e contratipos.">
+<meta name="theme-color" content="#7a2c4e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Acervo">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+html{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}img{max-width:100%}[hidden]{display:none!important}
+/* Layout: estante de frascos — cabeçalho fixo com abas, grade de cartões, ficha em painel deslizante */
+:root{
+  --bg:#f5f2f6; --surface:#ffffff; --sunk:#ece6ee; --ink:#231925; --muted:#6c6170; --line:#e1d9e4;
+  --accent:#7a2c4e; --accent-ink:#ffffff; --gold:#a8812f; --danger:#b3261e; --ok:#2e7d4f;
+  --display:"Bodoni Moda","Didot","Bodoni 72",Georgia,serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#161118; --surface:#211a24; --sunk:#2a222d; --ink:#f2ebf3; --muted:#a99daf; --line:#372d3b;
+  --accent:#d683a8; --accent-ink:#1c1219; --gold:#d8b46c; --danger:#ff8a80; --ok:#7fd3a0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161118; --surface:#211a24; --sunk:#2a222d; --ink:#f2ebf3; --muted:#a99daf; --line:#372d3b;
+  --accent:#d683a8; --accent-ink:#1c1219; --gold:#d8b46c; --danger:#ff8a80; --ok:#7fd3a0; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:18px 10px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:400;font-style:italic;font-size:clamp(28px,5vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.stats{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.stats b{display:block;font-family:var(--display);font-size:22px;color:var(--ink);font-weight:500}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-bottom:12px}
+.tabs{display:flex;background:var(--sunk);border-radius:999px;padding:3px}
+.tab{border:0;background:none;padding:7px 16px;border-radius:999px;cursor:pointer;font-weight:600;font-size:14px;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0 / .12)}
+.tab .n{font-family:var(--mono);font-size:11px;margin-left:4px;opacity:.7}
+.search{flex:1 1 180px;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px}
+select.f{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 12px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;cursor:pointer;font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{border-color:transparent;background:none}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.55;cursor:default}
+
+main{padding-block:22px 60px}
+.notice{border:1px dashed var(--line);border-radius:var(--r);padding:14px 16px;color:var(--muted);margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;text-align:left;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-2px);border-color:var(--muted)}
+.card .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card h3{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.15;margin:0;text-wrap:balance}
+.card .marca{color:var(--muted);font-size:13px;margin-top:-6px}
+.strip{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--sunk)}
+.strip span{display:block;height:100%}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--ink)}
+.chip.dono{background:none;border:1px solid var(--line)}
+.chip.cat{color:var(--gold);background:none;border:1px solid color-mix(in srgb,var(--gold) 40%,transparent)}
+.foot{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:auto}
+
+.empty{text-align:center;padding:50px 16px;color:var(--muted)}
+.empty h2{font-family:var(--display);font-style:italic;font-weight:400;color:var(--ink);font-size:28px;margin:0 0 8px}
+.empty p{max-width:52ch;margin:0 auto 18px}
+
+/* painel */
+.scrim{position:fixed;inset:0;background:rgb(10 5 12 / .45);z-index:20;display:flex;justify-content:flex-end}
+.sheet{background:var(--bg);width:min(620px,100%);height:100%;overflow-y:auto;padding:max(18px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(30px,env(safe-area-inset-bottom,0px)) 20px;box-shadow:-8px 0 30px rgb(0 0 0 / .2);animation:slide .22s ease-out}
+@keyframes slide{from{transform:translateX(30px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}.card{transition:none}}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sheet h2{font-family:var(--display);font-weight:500;font-size:clamp(28px,6vw,38px);line-height:1.05;margin:4px 0 2px;text-wrap:balance}
+.sheet .sub{color:var(--muted)}
+section.blk{margin-top:26px}
+section.blk>h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+.accords{display:flex;flex-direction:column;gap:5px}
+.acc{height:26px;border-radius:5px;display:flex;align-items:center;padding:0 10px;font-size:13px;font-weight:600;min-width:fit-content;white-space:nowrap}
+.pyr{display:flex;flex-direction:column;align-items:center;gap:6px}
+.tier{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;text-align:center}
+.tier:nth-child(1){width:72%}.tier:nth-child(2){width:86%}.tier:nth-child(3){width:100%}
+.tier .lbl{font-family:var(--display);font-style:italic;font-size:15px;margin-bottom:6px}
+.tier .chips{justify-content:center}
+.notes{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 6px}
+.nt{width:74px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.nt .ic{width:50px;height:50px;border-radius:50%;background:var(--sunk);display:grid;place-items:center}
+.nt svg{width:38px;height:38px;display:block}
+.dupes{display:flex;flex-direction:column;gap:8px}
+.dupe{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center}
+.dupe .nm{font-weight:600;min-width:0}
+.dupe .mk{color:var(--muted);font-size:13px}
+.sim{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px}
+.sim i{display:block;height:5px;border-radius:3px;background:var(--accent)}
+.sim .tr{width:90px;background:var(--sunk);border-radius:3px}
+.dupe .act{grid-row:1/3;grid-column:2;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.price{font-family:var(--mono);font-size:13px}
+.links{display:flex;gap:8px;flex-wrap:wrap}
+.links a{color:var(--accent);font-weight:600;font-size:14px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.kv small{display:block;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.note{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:26px}
+.src{font-size:12px;color:var(--muted);margin-top:6px}
+
+form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){form .row{grid-template-columns:1fr}}
+form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+form input,form select,form textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:9px 11px;font-weight:400;font-size:15px;color:var(--ink);min-width:0}
+form textarea{min-height:70px;resize:vertical}
+.fieldset{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.fetchbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.fetchrow{display:flex;gap:8px;align-items:flex-end}
+.fetchrow label{flex:1}
+.status{font-size:13px;color:var(--muted);min-height:1.2em}
+.status.err{color:var(--danger)}.status.ok{color:var(--ok)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:inline-block;padding:7px 14px;border:1px solid var(--line);border-radius:999px;background:var(--surface);cursor:pointer;font-size:14px;color:var(--ink);font-weight:500}
+.seg input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.pricehead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.offers{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.offer{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.offer .lj{min-width:0;font-weight:600}.offer .lj a{color:inherit}.offer small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+.offer .pill{grid-column:1/-1;justify-self:start}
+.pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px}
+.chip.borji{background:none;border:1px solid var(--accent);color:var(--accent)}
+.pill.off{color:var(--muted);background:var(--sunk)}
+.pill.ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.best{font-size:13px;color:var(--muted)}.best b{font-family:var(--mono);color:var(--ink);font-weight:500}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:color-mix(in srgb,var(--danger) 10%,var(--surface));border-radius:10px;padding:8px 12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:40}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.iconbtn{font-size:20px;line-height:1;padding:6px 12px}
+.login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.loginbox{width:min(380px,100%);display:flex;flex-direction:column;gap:12px}
+.loginbox h1{font-family:var(--display);font-style:italic;font-weight:400;font-size:40px;margin:0;line-height:1}
+.loginbox label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--muted)}
+.loginbox input{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 12px;font-size:16px;color:var(--ink)}
+.gsrc{font-size:12px;color:var(--muted);margin-top:6px;overflow-wrap:anywhere}.gsrc a{color:var(--accent)}
+.gsugg{margin-top:8px;max-width:100%;overflow-x:auto}
+input,select,textarea{font-size:16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <h1>Acervo Olfativo</h1>
+        <p>A coleção de perfumes do casal</p>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+    <div class="bar">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-tenho" aria-selected="true" data-tab="tenho">Coleção<span class="n" id="n-tenho"></span></button>
+        <button class="tab" role="tab" id="tab-desejo" aria-selected="false" data-tab="desejo">Desejos<span class="n" id="n-desejo"></span></button>
+      </div>
+      <input class="search" id="q" type="search" placeholder="Buscar nome, marca, nota ou acorde">
+      <select class="f" id="fdono" aria-label="Filtrar por dono">
+        <option value="">Todos</option><option value="ele">Dele</option><option value="ela">Dela</option><option value="casal">Do casal</option>
+      </select>
+      <select class="f" id="fcat" aria-label="Filtrar por categoria">
+        <option value="">Todas categorias</option>
+      </select>
+      <button class="btn primary" id="add">+ Adicionar</button>
+      <button class="btn ghost iconbtn" id="menu" aria-label="Ajustes">⋯</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="notice" class="notice" hidden></div>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" hidden></div>
+</main>
+
+<div id="layer"></div>
+<div id="toast" class="toast" hidden></div>
+<div id="login" class="login" hidden>
+  <form id="lf" class="loginbox" autocomplete="on">
+    <h1>Acervo Olfativo</h1>
+    <p class="sub">A coleção de perfumes do casal. Entre com o e-mail de vocês.</p>
+    <label>E-mail<input id="l-email" type="email" autocomplete="username" required></label>
+    <label>Senha<input id="l-pass" type="password" autocomplete="current-password" required></label>
+    <button class="btn primary" type="submit">Entrar</button>
+    <button class="btn ghost" type="button" id="l-reset">Esqueci a senha</button>
+    <div class="status" id="lstatus"></div>
+  </form>
+</div>
+
+<script>
+const CATS=["Nicho","Designer","Nacional","Árabe","Contratipo"];
+const CONC=["","Eau de Cologne","Eau de Toilette","Eau de Parfum","Parfum","Extrait de Parfum","Elixir","Body splash"];
+const DONO={ele:"Dele",ela:"Dela",casal:"Do casal"};
+const ACC_COLORS={
+  "amadeirado":"#7b4f2a","cítrico":"#f2d64b","floral":"#f4a6c6","floral branco":"#f6e7ee","rosa":"#e2577a","fresco especiado":"#9ccc7e",
+  "quente especiado":"#c6502d","especiado":"#c6502d","âmbar":"#c8872c","ambarado":"#c8872c","baunilha":"#f1dab0","doce":"#e5658e","aromático":"#4f9a8b",
+  "couro":"#6a3c2b","almiscarado":"#d9cadb","almíscar":"#d9cadb","aquático":"#5db6d8","marinho":"#3e8fb8","frutado":"#f08a4a","verde":"#3f9a42",
+  "gourmand":"#a8682a","caramelo":"#b8742a","atalcado":"#e8dfe9","fumado":"#7d7a7a","defumado":"#7d7a7a","oud":"#5b3a28","terroso":"#8a7a4e",
+  "lavanda":"#9b86cb","tabaco":"#9c6f3a","ozônico":"#a8d5e6","fresco":"#9fdcd0","herbal":"#6aa36a","cacau":"#6b4228","café":"#5a3c2b",
+  "mel":"#e0a93a","resinoso":"#9a6a35","balsâmico":"#9a5f3a","tropical":"#f6b13b","coco":"#efe6d6","patchouli":"#6b5a3a","animálico":"#8a5a4a",
+  "metálico":"#a9adb3","iris":"#b6a6d6","íris":"#b6a6d6","violeta":"#8a67b8","cereja":"#b3203a","amêndoa":"#d8b98a","lactônico":"#f3ecdc",
+  "chipre":"#5e7a4a","fougère":"#5d8a6a","mineral":"#9aa4a8","salgado":"#b9cbd3","conhaque":"#a0541f","rum":"#8a4a1f","canela":"#a8471f","ervas":"#6aa36a"
+};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function accColor(n){const k=String(n||"").toLowerCase().trim();if(ACC_COLORS[k])return ACC_COLORS[k];
+  for(const key in ACC_COLORS){if(k.includes(key))return ACC_COLORS[key]}
+  let h=0;for(const c of k)h=(h*31+c.charCodeAt(0))%360;return `hsl(${h} 45% 60%)`}
+function inkOn(hex){if(!hex.startsWith("#"))return "#1d1420";const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000>150?"#1d1420":"#ffffff"}
+/* ---------- ícones das notas (desenho próprio) ---------- */
+function rgbOf(h){const n=parseInt(h.slice(1),16);return [n>>16,n>>8&255,n&255]}
+function mixHex(h,t,f){const a=rgbOf(h),b=t==="w"?[255,255,255]:[30,18,20];return `rgb(${a.map((v,i)=>Math.round(v+(b[i]-v)*f)).join(" ")})`}
+const ICON={
+  citrus:(c,d,l)=>`<circle cx="20" cy="20" r="15" fill="${c}" stroke="${d}" stroke-width="1.5"/><circle cx="20" cy="20" r="11.5" fill="${l}"/>${[0,45,90,135].map(a=>`<line x1="20" y1="9" x2="20" y2="31" stroke="${c}" stroke-width="1.4" transform="rotate(${a} 20 20)"/>`).join("")}<circle cx="20" cy="20" r="2" fill="${c}"/>`,
+  flower:(c,d)=>[0,72,144,216,288].map(a=>`<ellipse cx="20" cy="11.5" rx="6" ry="8.5" fill="${c}" stroke="${d}" stroke-width="1" transform="rotate(${a} 20 20)"/>`).join("")+`<circle cx="20" cy="20" r="4.2" fill="#e9b93a" stroke="#b98a1f" stroke-width="1"/>`,
+  rose:(c,d)=>`<path d="M20 33c-8 0-12-6-12-12 0-7 5-12 12-12s12 5 12 12c0 6-4 12-12 12z" fill="${c}" stroke="${d}" stroke-width="1.3"/><path d="M20 28c-4 0-6-3-6-6 0-4 3-6 6-6s6 2 6 5M20 24c-2 0-2.5-1.5-2.5-2.5S18.5 19 20 19s2.5 1 2.5 2" fill="none" stroke="${d}" stroke-width="1.3" stroke-linecap="round"/><path d="M8 30c4 1 7 0 9-2" stroke="#4a8a3a" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+  sprig:(c,d)=>`<path d="M20 35V12" stroke="#5a7a3a" stroke-width="1.6"/>${[0,1,2,3,4,5].map(i=>`<ellipse cx="${i%2?23.5:16.5}" cy="${10+i*3.6}" rx="3.4" ry="2.4" fill="${c}" stroke="${d}" stroke-width=".8"/>`).join("")}<ellipse cx="20" cy="7" rx="2.6" ry="3" fill="${c}" stroke="${d}" stroke-width=".8"/>`,
+  leaf:(c,d)=>`<path d="M7 33C7 17 17 8 33 7c-1 15-9 26-26 26z" fill="${c}" stroke="${d}" stroke-width="1.5"/><path d="M7 33L27 13M15 25l-1-6M20 20l-1-6M15 25l6 1M20 20l6 1" stroke="${d}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`,
+  tree:(c,d)=>`<path d="M20 4l9 11h-5l7 9h-6l7 9H8l7-9H9l7-9h-5z" fill="${c}" stroke="${d}" stroke-width="1.2" stroke-linejoin="round"/><rect x="18" y="33" width="4" height="4" fill="#7a5032"/>`,
+  wood:(c,d,l)=>`<rect x="5" y="13" width="25" height="15" rx="2" fill="${c}" stroke="${d}" stroke-width="1.4"/><path d="M9 18h14M11 23h12" stroke="${d}" stroke-width="1" stroke-linecap="round"/><ellipse cx="30" cy="20.5" rx="5.5" ry="7.5" fill="${l}" stroke="${d}" stroke-width="1.4"/><ellipse cx="30" cy="20.5" rx="2.8" ry="4" fill="none" stroke="${d}" stroke-width="1"/><circle cx="30" cy="20.5" r=".9" fill="${d}"/>`,
+  pepper:(c,d,l)=>[[14,25],[26,25],[20,15]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="6.5" fill="${c}" stroke="${d}" stroke-width="1.3"/><circle cx="${x-2}" cy="${y-2}" r="1.6" fill="${l}"/>`).join(""),
+  star:(c,d,l)=>`<g transform="translate(20 20)">${[0,45,90,135,180,225,270,315].map(a=>`<ellipse cx="0" cy="-9" rx="3.6" ry="7.5" fill="${c}" stroke="${d}" stroke-width="1" transform="rotate(${a})"/>`).join("")}<circle r="3" fill="${l}" stroke="${d}"/></g>`,
+  stick:(c,d,l)=>`<g transform="rotate(-35 20 20)"><rect x="6" y="15" width="28" height="5" rx="2.5" fill="${c}" stroke="${d}" stroke-width="1.2"/><rect x="6" y="21" width="28" height="5" rx="2.5" fill="${l}" stroke="${d}" stroke-width="1.2"/></g>`,
+  pod:(c,d)=>`<path d="M7 34C14 28 24 18 32 6" stroke="${c}" stroke-width="4.5" stroke-linecap="round" fill="none"/><path d="M11 35C18 29 27 20 34 9" stroke="${d}" stroke-width="4" stroke-linecap="round" fill="none"/><g transform="translate(13 12)">${[0,72,144,216,288].map(a=>`<ellipse cx="0" cy="-4" rx="2.4" ry="3.8" fill="#f3e8b8" stroke="#c9b06a" stroke-width=".7" transform="rotate(${a})"/>`).join("")}<circle r="1.5" fill="#e0a93a"/></g>`,
+  drop:(c,d,l)=>`<path d="M20 5c6 9 11.5 14.5 11.5 21a11.5 11.5 0 0 1-23 0C8.5 19.5 14 14 20 5z" fill="${c}" stroke="${d}" stroke-width="1.5"/><ellipse cx="15.5" cy="25" rx="2.2" ry="4" fill="${l}" opacity=".8"/>`,
+  cloud:(c,d)=>`<path d="M11 30a6 6 0 0 1-.5-12A8.5 8.5 0 0 1 27 14.5 7 7 0 0 1 30 30z" fill="${c}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="14" cy="9" r="1.4" fill="${d}"/><circle cx="31" cy="9" r="1" fill="${d}"/><circle cx="34" cy="13" r="1.3" fill="${d}"/>`,
+  fruit:(c,d,l)=>`<path d="M20 13c-3-2-11-2-11 9 0 7 5 13 8 13 1.5 0 2-.8 3-.8s1.5.8 3 .8c3 0 8-6 8-13 0-11-8-11-11-9z" fill="${c}" stroke="${d}" stroke-width="1.4"/><path d="M20 13c0-4 1-6 3-8" stroke="#6a4a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M22 8c3-3 7-2 8 0-3 2-6 2-8 0z" fill="#5a9a3a"/><ellipse cx="14" cy="20" rx="2" ry="3.5" fill="${l}" opacity=".7"/>`,
+  berries:(c,d,l)=>[[14,25],[26,25],[20,15]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="7" fill="${c}" stroke="${d}" stroke-width="1.3"/><circle cx="${x-2.3}" cy="${y-2.3}" r="1.8" fill="${l}" opacity=".8"/>`).join("")+`<path d="M20 8c0-2 1-3 3-4" stroke="#5a7a3a" stroke-width="1.5" fill="none"/>`,
+  bean:(c,d,l)=>`<g transform="rotate(-28 20 20)"><ellipse cx="20" cy="20" rx="10" ry="14" fill="${c}" stroke="${d}" stroke-width="1.5"/><path d="M20 7c-4 6 4 20 0 26" stroke="${l}" stroke-width="1.8" fill="none" stroke-linecap="round"/></g>`,
+  nut:(c,d,l)=>`<path d="M20 5c10 8 11 21 0 30C9 26 10 13 20 5z" fill="${c}" stroke="${d}" stroke-width="1.5"/><path d="M17 12c-2 5-2 11 0 16M23 13c1 4 1 9 0 13" stroke="${l}" stroke-width="1.1" fill="none" stroke-linecap="round"/>`,
+  smoke:(c)=>[11,20,29].map((x,i)=>`<path d="M${x} 35c-4-5 4-8 0-13s4-8 0-13" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round" opacity="${1-i*.2}"/>`).join(""),
+  leather:(c,d,l)=>`<path d="M9 7c4 2 7 2 11 0 4 2 7 2 11 0 1 5-2 7 0 13s-1 9 0 13c-4-2-7-2-11 0-4-2-7-2-11 0 1-4-2-7 0-13S8 12 9 7z" fill="${c}" stroke="${d}" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 11c3 1 13 1 16 0M12 29c3-1 13-1 16 0" stroke="${l}" stroke-width="1.2" stroke-dasharray="2 2" fill="none"/>`,
+  crystal:(c,d,l)=>`<path d="M20 4l12 12-12 20L8 16z" fill="${c}" stroke="${d}" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 16h24M20 4l-5 12 5 20 5-20z" stroke="${d}" stroke-width="1" fill="none"/><path d="M16 9l-3 5" stroke="${l}" stroke-width="1.6" stroke-linecap="round"/>`,
+  glass:(c,d)=>`<path d="M11 8h18l-2 24a3 3 0 0 1-3 3h-8a3 3 0 0 1-3-3z" fill="#eef3f6" stroke="#8a9aa6" stroke-width="1.4" stroke-linejoin="round"/><path d="M12.4 20h15.2l-1 12a2 2 0 0 1-2 2h-9.2a2 2 0 0 1-2-2z" fill="${c}"/><rect x="14" y="14" width="6" height="6" rx="1" fill="#ffffff" stroke="#b9c6cf" transform="rotate(12 17 17)"/>`,
+  wave:(c,d)=>[13,21,29].map((y,i)=>`<path d="M5 ${y}c4-4 6-4 10 0s6 4 10 0 6-4 10 0" stroke="${i===1?d:c}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`).join(""),
+  grass:(c,d)=>`<path d="M10 35c0-9-3-16-6-21M15 35c0-11 1-19 4-27M21 35c0-10 3-17 8-22M26 35c1-7 4-12 9-14M18 35c-1-6-4-11-8-14" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M15 35c0-11 1-19 4-27" stroke="${d}" stroke-width="1" fill="none"/>`,
+  cup:(c,d)=>`<path d="M7 15h22v8a10 10 0 0 1-10 10h-2A10 10 0 0 1 7 23z" fill="#f2efe9" stroke="#9a8f86" stroke-width="1.4"/><path d="M29 17h2a4 4 0 0 1 0 8h-2.4" stroke="#9a8f86" stroke-width="1.4" fill="none"/><ellipse cx="18" cy="15" rx="10.4" ry="2.4" fill="${c}"/><path d="M15 11c-1.5-2 1.5-3 0-5M21 11c-1.5-2 1.5-3 0-5" stroke="#b0a8a0" stroke-width="1.3" fill="none" stroke-linecap="round"/>`,
+  dot:(c,d,l,name)=>`<circle cx="20" cy="20" r="13" fill="${c}" stroke="${d}" stroke-width="1.4"/><text x="20" y="25" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-style="italic" fill="${d}">${esc((name||"?").trim().charAt(0).toUpperCase())}</text>`
+};
+// [padrão sem acento, ícone, cor] — ordem importa: específicos primeiro
+const NOTE_MAP=[
+ [/cravo[- ]da[- ]india|\bclove/,"star","#6b3b25"],[/anis estrelad|star anise|badiana/,"star","#7a4027"],
+ [/flor de laranjeira|orange blossom|neroli|flor de lar/,"flower","#fbf3e6"],[/folha de violeta|violet leaf/,"leaf","#3f8a42"],
+ [/pimenta[- ]rosa|pink pepper|baies roses/,"pepper","#e07a8a"],[/pimenta|pepper/,"pepper","#5a4036"],
+ [/flor de cerejeira|sakura|cherry blossom/,"flower","#f6c6d6"],[/ambar cinza|ambergris|ambroxan|ambroxide/,"drop","#d9cba8"],
+ [/fava tonka|tonka/,"bean","#5a3a25"],[/agua de coco|coco|coconut/,"fruit","#8a6a4a"],
+ [/bergamot/,"citrus","#c4d24a"],[/limao siciliano|\blimao|lemon/,"citrus","#f2dc3a"],[/\blima\b|\blime/,"citrus","#9ccc3a"],
+ [/mandarin|tangerin|clementin/,"citrus","#f5a030"],[/toranja|grapefruit|pomelo/,"citrus","#f07a5a"],[/laranja|orange|blood orange/,"citrus","#f39a2b"],
+ [/yuzu|cidra|citron|cedrat|kumquat/,"citrus","#f2d43a"],[/petitgrain/,"leaf","#6b9a3a"],[/citric|citrus/,"citrus","#f2d64b"],
+ [/\brosa\b|\brose|rosas/,"rose","#e2577a"],[/lavand/,"sprig","#9b86cb"],[/\biris|orris|lirio florentino/,"sprig","#9d8ccf"],
+ [/jasmi|sambac/,"flower","#f6f1df"],[/tuberos|angelica flor/,"flower","#f6efe4"],[/violeta|violet/,"flower","#7d5bb0"],[/peonia|peony/,"flower","#f19bb3"],
+ [/gardenia/,"flower","#f7f2e6"],[/ylang/,"flower","#f2e07a"],[/magnolia/,"flower","#f4e4ec"],[/lirio|lily|muguet/,"flower","#f5f3ea"],
+ [/frangipan|plumeria|tiare|monoi/,"flower","#f8e6b0"],[/heliotrop/,"flower","#c9a6d9"],[/geranio|geranium/,"flower","#e0607a"],
+ [/orquidea|orchid/,"flower","#c97bc9"],[/freesia|fresia/,"flower","#f2c35a"],[/mimosa/,"flower","#f3d84a"],[/osmanthus|osmanto/,"flower","#f1a54a"],
+ [/camomila|chamomile/,"flower","#f5e9a6"],[/\bcravo|carnation/,"flower","#d84a5a"],[/narciso|narcissus|jonquil/,"flower","#f5e05a"],
+ [/lotus|lotus/,"flower","#f4bcd0"],[/hibisco|hibiscus/,"flower","#d8344a"],[/flor|floral|flower|blossom|petal/,"flower","#f4a6c6"],
+ [/cardamom/,"pepper","#8fb56a"],[/canela|cinnamon|cassia/,"stick","#a8471f"],[/noz[- ]moscada|nutmeg|macis|mace/,"nut","#9a6b3a"],
+ [/acafrao|saffron/,"sprig","#e5622a"],[/gengibre|ginger/,"nut","#d9b46a"],[/cominho|cumin|coentro|coriander|zimbro|juniper/,"pepper","#a77d40"],
+ [/especiaria|spice|spicy/,"pepper","#c6502d"],
+ [/sandalo|sandalwood/,"wood","#c99a6a"],[/\boud\b|agarwood|aoud/,"wood","#4a2e1f"],[/cedro|cedar/,"wood","#a56a3a"],[/guaiac|guaiaco/,"wood","#8a5a3a"],
+ [/cashmeran|cashmere/,"wood","#c8a68a"],[/betula|birch/,"smoke","#8a7a6a"],[/pinho|pine|cipreste|cypress|abeto|\bfir\b|conifer/,"tree","#3f6b3a"],
+ [/vetiver/,"grass","#7a7a3a"],[/papiro|papyrus/,"grass","#9aa060"],[/patchouli|patchuli|patcholi/,"leaf","#6b5a3a"],[/musgo|moss/,"leaf","#5e7a4a"],
+ [/madeira|wood|amadeirad|iso e super|akigalawood|cypriol/,"wood","#8a5a2b"],
+ [/incenso|incense|olibano|frankincense/,"smoke","#8a8a8a"],[/fumaca|smoke|defumad|smoky/,"smoke","#6e6a6a"],
+ [/ambar|amber|benjoim|benzoin|labdan|laudano|ladano|mirra|myrrh|elemi|copaiba|tolu|balsamo|balsam|styrax|estoraque|resina|resin|opopanax/,"drop","#c8872c"],
+ [/baunilha|vanilla|vanila|baunilh/,"pod","#4a2e1e"],[/caramelo|caramel|toffee|dulce de leche|doce de leite/,"drop","#c07a2a"],
+ [/\bmel\b|honey/,"drop","#e0a93a"],[/acucar|sugar|algodao[- ]doce|cotton candy|merengue|meringue/,"crystal","#f3e3ec"],
+ [/chocolate|cacau|cocoa|cacao/,"bean","#5a3420"],[/cafe|coffee|espresso/,"bean","#4a2e20"],
+ [/pralin|amendoa|almond|aveia|avela|hazelnut|pistache|pistachio|castanha|chestnut|nozes|walnut/,"nut","#c9a06a"],
+ [/leite|milk|creme|cream|lacton/,"drop","#efe6d4"],[/marshmallow/,"cloud","#f6e8ee"],
+ [/\bmaca\b|\bapple/,"fruit","#d84a3a"],[/\bpera\b|\bpear/,"fruit","#c9d65a"],[/pessego|peach|nectarin/,"fruit","#f5a47a"],[/damasco|apricot/,"fruit","#f2a04a"],
+ [/abacaxi|pineapple|ananas/,"fruit","#e8c23a"],[/manga|mango/,"fruit","#f2b03a"],[/maracuja|passion/,"fruit","#a85aa0"],
+ [/framboesa|raspberr/,"berries","#d63a5a"],[/morango|strawberr/,"berries","#e03a3a"],[/cassis|groselha|currant/,"berries","#3a2a4a"],
+ [/amora|blackberr|mirtilo|blueberr/,"berries","#4a4a8a"],[/cereja|cherr/,"berries","#b3203a"],[/ameixa|plum/,"fruit","#6a2a5a"],
+ [/figo|\bfig/,"fruit","#7a4a6a"],[/melancia|watermelon/,"fruit","#e85a6a"],[/melao|melon/,"fruit","#b9d68a"],[/\buva|grape/,"berries","#7a4a8a"],
+ [/lichia|lychee|litchi/,"berries","#f2c6c6"],[/\broma\b|pomegranate/,"berries","#c3283a"],[/banana/,"fruit","#f2d84a"],[/goiaba|guava/,"fruit","#f08a8a"],
+ [/fruta|fruit|frutad|tutti/,"fruit","#f08a4a"],
+ [/menta|hortela|mint/,"leaf","#3fae6a"],[/manjericao|basil/,"leaf","#3f8a3a"],[/salvia|sage/,"sprig","#8aa88a"],[/alecrim|rosemary/,"sprig","#5a8a5a"],
+ [/tomilho|thyme|oregano|estragao|tarragon|artemisia|absint|losna|davana/,"sprig","#7a9a6a"],
+ [/cha preto|black tea/,"cup","#8a5a2a"],[/\bcha\b|\btea\b|matcha|\bmate\b/,"cup","#6a9a4a"],
+ [/tabaco|tobacco/,"leaf","#9c6f3a"],[/couro|leather|camurca|suede/,"leather","#7a4a32"],
+ [/galbano|galbanum|grama|grass|feno|hay|\berva|verde|green|bambu|bamboo|folha|leaf|leaves|figueira/,"grass","#4a9a3a"],
+ [/almisc|musk|almiscar/,"cloud","#e3d6e6"],[/atalcad|powder|talco|\bpo\b/,"cloud","#efe6ee"],[/aldeid|aldehyd/,"crystal","#e8eef2"],
+ [/marinh|marine|\bmar\b|ocean|\bsea\b|aquatic|aquatico|calone|ozon|\bagua\b|water|brisa/,"wave","#4aa6d0"],
+ [/\bsal\b|salt|salgad/,"crystal","#dfe8ec"],[/mineral|pedra|stone|metal|incens mineral|terra|earth|terros/,"crystal","#a0a8ae"],
+ [/chuva|rain/,"drop","#8ac0dc"],[/\brum\b|conhaque|cognac|whisk|uisque|vinho|wine|licor|liqueur|champanhe|champagne|gin\b|vodka|absinto/,"glass","#a0541f"]
+];
+const plain=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+function noteIcon(name){
+  const k=plain(name); let ic="dot",c="#c9b8cf";
+  for(const [re,i,col] of NOTE_MAP){if(re.test(k)){ic=i;c=col;break}}
+  const d=mixHex(c,"k",.45), l=mixHex(c,"w",.55);
+  return `<svg viewBox="0 0 40 40" aria-hidden="true">${ICON[ic](c,d,l,name)}</svg>`;
+}
+function tierHtml(label,arr){
+  const items=(arr||[]);
+  return `<div class="tier"><div class="lbl">${label}</div><div class="notes">${items.length?items.map(n=>`<div class="nt"><span class="ic">${noteIcon(n)}</span><span>${esc(n)}</span></div>`).join(""):'<span class="chip">—</span>'}</div></div>`;
+}
+
+function money(v){if(v==null||v==="")return "";const n=Number(v);return isNaN(n)?String(v):n.toLocaleString("pt-BR",{style:"currency",currency:"BRL",maximumFractionDigits:0})}
+
+let state={tab:"tenho",items:[],q:"",dono:"",cat:"",db:null,col:null,loaded:false};
+const $=id=>document.getElementById(id);
+CATS.forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;$("fcat").append(o)});
+
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>el.hidden=true,2600)}
+
+let borji=null;
+/* ---------- configuração ---------- */
+// 1) Cole aqui a configuração do app Web do seu projeto Firebase (Console > Configurações do projeto > Seus apps).
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDM5ivUun9RFH_Ub0ALHpQf6unScSxRQMM",
+  authDomain: "acervo-olfativo.firebaseapp.com",
+  projectId: "acervo-olfativo",
+  storageBucket: "acervo-olfativo.firebasestorage.app",
+  messagingSenderId: "425618720562",
+  appId: "1:425618720562:web:a2f2da45b6934d9892792b"
+};
+// 2) Modelo do Gemini usado nas buscas (pode trocar por outro modelo compatível com o Firebase AI Logic).
+const GEMINI_MODEL = "gemini-3.8-flash";
+const FB = "https://www.gstatic.com/firebasejs/13.1.0/";
+
+/* ---------- nuvem (Firebase) ---------- */
+let fb = {}, unsubs = [];
+(async function boot(){
+  render();
+  loadBundledBorji();
+  if(!FIREBASE_CONFIG.apiKey){
+    showLogin("Falta configurar o Firebase: cole a configuração do projeto em FIREBASE_CONFIG, no index.html (veja o LEIA-ME).","err",true);
+    return;
+  }
+  try{
+    const [appM,authM,fsM]=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-auth.js"),import(FB+"firebase-firestore.js")]);
+    fb={...appM,...authM,...fsM};
+    fb.fapp=fb.initializeApp(FIREBASE_CONFIG);
+    fb.auth=fb.getAuth(fb.fapp);
+    try{
+      fb.db=fb.initializeFirestore(fb.fapp,{ignoreUndefinedProperties:true,localCache:fb.persistentLocalCache({tabManager:fb.persistentMultipleTabManager()})});
+    }catch(e){fb.db=fb.getFirestore(fb.fapp)}
+    fb.onAuthStateChanged(fb.auth,u=>{
+      state.user=u;
+      if(u){hideLogin();startData()}else{stopData();showLogin()}
+    });
+  }catch(e){
+    showLogin("Não foi possível carregar o app. Verifique a internet e abra de novo.","err");
+  }
+})();
+
+function startData(){
+  if(unsubs.length)return;
+  state.col=fb.collection(fb.db,"perfumes");
+  const t=setTimeout(()=>{if(!state.loaded)showNotice("Ainda sem resposta da nuvem. O que vocês adicionarem fica guardado no aparelho e sincroniza quando a internet voltar.")},10000);
+  unsubs.push(fb.onSnapshot(state.col,{includeMetadataChanges:false},snap=>{
+    state.items=snap.docs.map(d=>({id:d.id,...d.data()}));
+    state.loaded=true; clearTimeout(t);
+    if(!snap.metadata.fromCache)$("notice").hidden=true;
+    render(); refreshOpenDetail();
+  },err=>{
+    clearTimeout(t); state.loaded=true;
+    showNotice(err.code==="permission-denied"?"Este e-mail ainda não tem acesso à coleção. Inclua-o nas regras do Firestore (veja o LEIA-ME).":"Não foi possível acessar a coleção agora.");
+    render();
+  }));
+  unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","borji"),sn=>{
+    const d=sn.exists()?sn.data():null;
+    if(d&&Array.isArray(d.itens)&&(!borji||(d.atualizadoEm||0)>=(borji.atualizadoEm||0))){borji=d;render();refreshOpenDetail()}
+  },()=>{}));
+}
+function stopData(){unsubs.forEach(u=>{try{u()}catch(e){}});unsubs=[];state.items=[];state.col=null;state.loaded=false;render()}
+function loadBundledBorji(){
+  fetch("borji.json").then(r=>r.ok?r.json():null).then(d=>{
+    if(d&&Array.isArray(d.itens)&&(!borji||(d.atualizadoEm||0)>(borji.atualizadoEm||0))){borji=d;render();refreshOpenDetail()}
+  }).catch(()=>{});
+}
+function showNotice(t){$("notice").innerHTML=t;$("notice").hidden=false}
+
+async function save(id,data){
+  if(!state.col){toast("Entre na conta para salvar.");return false}
+  data.atualizadoEm=Date.now(); data.atualizadoPor=state.user?.email||"";
+  if(!id)data.criadoEm=Date.now();
+  const ref=id?fb.doc(state.col,id):fb.doc(state.col);
+  // Não espera a confirmação do servidor: sem internet, a gravação fica na fila e sincroniza depois.
+  fb.setDoc(ref,data).catch(e=>toast(e.code==="permission-denied"?"Este e-mail não tem permissão para salvar.":"Não foi possível salvar na nuvem. Tente de novo."));
+  return true;
+}
+async function doDelete(id){
+  fb.deleteDoc(fb.doc(state.col,id)).catch(()=>toast("Não foi possível excluir."));
+  closeLayer(); toast("Perfume excluído");
+}
+
+/* ---------- login ---------- */
+function ls(t,cls){const s=$("lstatus");s.className="status"+(cls?" "+cls:"");s.innerHTML=t||""}
+function showLogin(msg,cls,lock){$("login").hidden=false;ls(msg,cls);$("lf").querySelectorAll("input,button").forEach(i=>i.disabled=!!lock)}
+function hideLogin(){$("login").hidden=true;ls("")}
+$("lf").onsubmit=async e=>{
+  e.preventDefault(); if(!fb.auth)return;
+  ls(`<span class="spin"></span>Entrando…`);
+  try{await fb.signInWithEmailAndPassword(fb.auth,$("l-email").value.trim(),$("l-pass").value);$("l-pass").value=""}
+  catch(err){
+    const c=err.code||"";
+    ls(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(c)?"E-mail ou senha incorretos.":/too-many-requests/.test(c)?"Muitas tentativas. Espere alguns minutos e tente de novo.":/unauthorized-domain/.test(c)?"Este endereço não está autorizado no Firebase (Authentication > Domínios autorizados).":"Não foi possível entrar. Verifique a internet.","err");
+  }
+};
+$("l-reset").onclick=async()=>{
+  const em=$("l-email").value.trim();
+  if(!em){ls("Digite o e-mail primeiro.","err");return}
+  try{await fb.sendPasswordResetEmail(fb.auth,em);ls("Enviamos um link para redefinir a senha nesse e-mail.","ok")}
+  catch(e){ls("Não foi possível enviar o e-mail de redefinição.","err")}
+};
+function logout(){closeLayer();fb.signOut&&fb.signOut(fb.auth)}
+
+/* ---------- Gemini (Firebase AI Logic) ---------- */
+let aiModel=null;
+async function gemini(){
+  if(aiModel)return aiModel;
+  const m=await import(FB+"firebase-ai.js");
+  const ai=m.getAI(fb.fapp,{backend:new m.GoogleAIBackend()});
+  aiModel=m.getGenerativeModel(ai,{model:GEMINI_MODEL,tools:[{urlContext:{}},{googleSearch:{}}]});
+  return aiModel;
+}
+async function askGemini(prompt){
+  if(!fb.fapp)throw new Error("offline");
+  const model=await gemini();
+  const r=await model.generateContent(prompt);
+  const resp=r.response;
+  let text=""; try{text=resp.text()}catch(e){}
+  return {text,json:parseJSON(text),grounding:resp.candidates?.[0]?.groundingMetadata||null};
+}
+function parseJSON(t){
+  if(!t)return null;
+  try{return JSON.parse(t)}catch(e){}
+  const f=t.match(/```(?:json)?\s*([\s\S]*?)```/); if(f){try{return JSON.parse(f[1])}catch(e){}}
+  const a=t.indexOf("{"),b=t.lastIndexOf("}"); if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e){}}
+  return null;
+}
+function aiErr(e){
+  const m=String(e?.message||e||"");
+  if(/quota|429|RESOURCE_EXHAUSTED|rate/i.test(m))return "O limite de uso do Gemini foi atingido. Tente de novo mais tarde.";
+  if(/not.*enabled|has not been used|PERMISSION_DENIED|403|api-not-enabled/i.test(m))return "O Gemini não está ativado no projeto Firebase (menu AI Logic). Veja o LEIA-ME.";
+  if(/offline|network|Failed to fetch/i.test(m))return "Sem internet para consultar o Gemini.";
+  if(/not found|404|model/i.test(m))return "O modelo do Gemini configurado não está disponível. Troque GEMINI_MODEL no index.html.";
+  return "Não consegui consultar o Gemini agora. Tente de novo ou preencha à mão.";
+}
+// O Google exige mostrar as sugestões de pesquisa e as fontes quando a resposta usa a Pesquisa Google.
+function renderGrounding(el,gm){
+  if(!el)return; el.innerHTML=""; if(!gm)return;
+  const fontes=(gm.groundingChunks||[]).map(c=>c&&c.web).filter(w=>w&&w.uri).slice(0,6);
+  if(fontes.length){
+    const d=document.createElement("div"); d.className="gsrc";
+    d.innerHTML="Fontes: "+fontes.map(w=>`<a href="${esc(w.uri)}" target="_blank" rel="noopener">${esc(w.title||"fonte")}</a>`).join(" · ");
+    el.append(d);
+  }
+  const rc=gm.searchEntryPoint&&gm.searchEntryPoint.renderedContent;
+  if(rc){const h=document.createElement("div");h.className="gsugg";h.attachShadow({mode:"open"}).innerHTML=rc;el.append(h)}
+}
+function slimGrounding(gm){
+  if(!gm)return {fontes:[],sugestoes:""};
+  return {fontes:(gm.groundingChunks||[]).map(c=>c&&c.web).filter(w=>w&&w.uri).slice(0,6).map(w=>({t:w.title||"fonte",u:w.uri})),sugestoes:gm.searchEntryPoint?.renderedContent||""};
+}
+function groundingFromSaved(pr){return pr?{searchEntryPoint:pr.sugestoes?{renderedContent:pr.sugestoes}:null,groundingChunks:(pr.fontes||[]).map(f=>({web:{uri:f.u,title:f.t}}))}:null}
+
+/* ---------- lista ---------- */
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t===b));render()});
+$("q").oninput=e=>{state.q=e.target.value.toLowerCase();render()};
+$("fdono").onchange=e=>{state.dono=e.target.value;render()};
+$("fcat").onchange=e=>{state.cat=e.target.value;render()};
+$("add").onclick=()=>openForm(null,{tipo:state.tab});
+
+function matches(p){
+  if(state.dono&&p.dono!==state.dono)return false;
+  if(state.cat&&p.categoria!==state.cat)return false;
+  if(!state.q)return true;
+  const hay=[p.nome,p.marca,p.categoria,p.familia,p.inspiradoEm,...(p.acordes||[]).map(a=>a.nome),
+    ...((p.piramide&&[].concat(p.piramide.topo||[],p.piramide.coracao||[],p.piramide.fundo||[]))||[])].join(" ").toLowerCase();
+  return hay.includes(state.q);
+}
+function render(){
+  const tenho=state.items.filter(p=>p.tipo!=="desejo"), desejo=state.items.filter(p=>p.tipo==="desejo");
+  const fT=tenho.filter(matches), fD=desejo.filter(matches);
+  $("n-tenho").textContent=fT.length; $("n-desejo").textContent=fD.length;
+  const marcas=new Set(fT.map(p=>(p.marca||"").toLowerCase()).filter(Boolean)).size;
+  const quem={ele:"dele",ela:"dela",casal:"do casal"}[state.dono]||"";
+  $("stats").innerHTML=`<div><b>${fT.length}</b>frascos${quem?" "+quem:""}</div><div><b>${marcas}</b>marcas</div><div><b>${fD.length}</b>desejos</div>`;
+  const list=(state.tab==="desejo"?desejo:tenho).filter(matches)
+    .sort((a,b)=>(b.criadoEm||0)-(a.criadoEm||0));
+  const grid=$("grid"), empty=$("empty");
+  grid.innerHTML=list.map(card).join("");
+  grid.querySelectorAll(".card").forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
+  const base=state.tab==="desejo"?desejo:tenho;
+  empty.hidden=list.length>0||!state.loaded;
+  if(!list.length&&state.loaded){
+    empty.innerHTML=base.length?`<h2>Nada encontrado</h2><p>Nenhum perfume corresponde a esses filtros.</p>`:
+      state.tab==="desejo"?`<h2>A lista de desejos está vazia</h2><p>Cole o link do Fragrantica ou do Scentido de um perfume que vocês querem provar. O app preenche acordes, pirâmide e contratipos.</p><button class="btn primary" onclick="openForm(null,{tipo:'desejo'})">Adicionar desejo</button>`:
+      `<h2>Comecem pelo primeiro frasco</h2><p>Adicione um perfume que vocês já têm. Com o link do Fragrantica, o app mostra os acordes principais e a pirâmide olfativa; com o do Scentido, sugere contratipos.</p><button class="btn primary" onclick="openForm(null,{tipo:'tenho'})">Adicionar perfume</button>`;
+  }
+  if(!state.loaded){grid.innerHTML=`<div class="notice"><span class="spin"></span>Carregando a coleção…</div>`}
+}
+function card(p){
+  const acc=(p.acordes||[]).slice(0,6), tot=acc.reduce((s,a)=>s+(Number(a.pct)||0),0)||1;
+  const strip=acc.length?`<div class="strip" aria-hidden="true">${acc.map(a=>`<span style="width:${(Number(a.pct)||0)/tot*100}%;background:${accColor(a.nome)}"></span>`).join("")}</div>`:"";
+  const notes=acc.slice(0,3).map(a=>`<span class="chip">${esc(a.nome)}</span>`).join("");
+  return `<button class="card" data-id="${esc(p.id)}">
+    <div class="meta"><span>${esc(p.concentracao||"")}</span><span>${p.tamanhoMl?esc(p.tamanhoMl)+" ml":""}</span></div>
+    <h3>${esc(p.nome||"Sem nome")}</h3><div class="marca">${esc(p.marca||"")}</div>
+    ${strip}
+    ${p.tipo==="desejo"&&bestPrice(p)?`<div class="best">a partir de <b>${esc(money(bestPrice(p)))}</b>${Number(p.preco)&&bestPrice(p)<=Number(p.preco)?' <span class="pill ok">no alvo</span>':''}</div>`:""}
+    <div class="chips">${p.categoria?`<span class="chip cat">${esc(p.categoria)}</span>`:""}${p.dono?`<span class="chip dono">${esc(DONO[p.dono]||p.dono)}</span>`:""}${borjiMatches(p).some(x=>!x.self)?'<span class="chip borji">na Borji</span>':''}${notes}</div>
+    <div class="foot"><span>${p.inspiradoEm?"↳ "+esc(p.inspiradoEm):""}</span><span>${(p.contratipos||[]).length?esc(p.contratipos.length)+" contratipos":""}</span></div>
+  </button>`;
+}
+
+/* ---------- ficha ---------- */
+let openId=null;
+function closeLayer(){$("layer").innerHTML="";openId=null;document.removeEventListener("keydown",escKey)}
+function escKey(e){if(e.key==="Escape")closeLayer()}
+function layer(html){
+  $("layer").innerHTML=`<div class="scrim" id="scrim"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  $("scrim").onclick=e=>{if(e.target.id==="scrim")closeLayer()};
+  document.addEventListener("keydown",escKey);
+}
+function refreshOpenDetail(){if(openId&&$("detail-root")){const p=state.items.find(x=>x.id===openId);if(p)openDetail(openId,true);else closeLayer()}}
+function openDetail(id,keepScroll){
+  const p=state.items.find(x=>x.id===id); if(!p)return; openId=id;
+  const sc=keepScroll&&document.querySelector(".sheet")?.scrollTop;
+  const acc=(p.acordes||[]).slice().sort((a,b)=>(b.pct||0)-(a.pct||0)), max=Math.max(...acc.map(a=>Number(a.pct)||0),1);
+  const py=p.piramide||{};
+  const tier=tierHtml;
+  const hasPyr=(py.topo||[]).length+(py.coracao||[]).length+(py.fundo||[]).length>0;
+  const dupes=p.contratipos||[];
+  const kv=[["Categoria",p.categoria],["Concentração",p.concentracao],["Tamanho",p.tamanhoMl&&p.tamanhoMl+" ml"],["Dono",DONO[p.dono]],
+    ["Família",p.familia],["Ano",p.ano],["Perfumista",p.perfumista],
+    ["Nota dele",p.notaEle&&p.notaEle+"/10"],["Nota dela",p.notaEla&&p.notaEla+"/10"]].filter(x=>x[1]);
+  layer(`<div id="detail-root">
+    <div class="sheet-head"><div><div class="eyebrow">${p.tipo==="desejo"?"Lista de desejos":"Na coleção"}</div>
+      <h2>${esc(p.nome)}</h2><div class="sub">${esc(p.marca||"")}${p.inspiradoEm?` · inspirado em ${esc(p.inspiradoEm)}`:""}</div></div>
+      <button class="btn ghost" onclick="closeLayer()" aria-label="Fechar">✕</button></div>
+    ${kv.length?`<section class="blk"><div class="kv">${kv.map(([k,v])=>`<div><small>${k}</small>${esc(v)}</div>`).join("")}</div></section>`:""}
+    ${p.tipo==="desejo"?priceSection(p):""}
+    <section class="blk"><h4>Acordes principais</h4>${acc.length?`<div class="accords">${acc.map(a=>{const c=accColor(a.nome);return `<div class="acc" style="width:${Math.max(28,(Number(a.pct)||0)/max*100)}%;background:${c};color:${inkOn(c)}">${esc(a.nome)}</div>`}).join("")}</div>`:`<div class="notice">Sem acordes ainda. Edite e cole o link do Fragrantica para preencher.</div>`}</section>
+    <section class="blk"><h4>Pirâmide olfativa</h4>${hasPyr?`<div class="pyr">${tier("Saída",py.topo)}${tier("Coração",py.coracao)}${tier("Fundo",py.fundo)}</div>`:`<div class="notice">Sem pirâmide ainda.</div>`}</section>
+    ${p.fonteDados?`<div class="src">${esc(p.fonteDados)}</div>`:""}
+    <section class="blk"><h4>Contratipos</h4>${dupes.length?`<div class="dupes">${dupes.map((d,i)=>`<div class="dupe">
+        <div class="nm">${d.url?`<a href="${esc(d.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(d.nome)}</a>`:esc(d.nome)} <span class="mk">· ${esc(d.marca||"")}</span></div>
+        <div class="act">${d.preco?`<span class="price">${esc(money(d.preco))}</span>`:""}<button class="btn" style="padding:4px 10px;font-size:12px" onclick="dupeToWish('${esc(p.id)}',${i})">+ Desejos</button></div>
+        <div class="sim">${d.semelhanca?`<span class="tr"><i style="width:${Math.min(100,Number(d.semelhanca))}%"></i></span>${esc(d.semelhanca)}% parecido`:""}</div>
+      </div>`).join("")}</div>`:`<div class="notice">Nenhum contratipo listado. Cole o link do Scentido na edição para buscar sugestões.</div>`}</section>
+    ${borjiSection(p)}
+    ${p.comentarios?`<section class="blk"><h4>Comentários</h4><div class="note">${esc(p.comentarios)}</div></section>`:""}
+    ${(p.fragranticaUrl||p.scentidoUrl)?`<section class="blk"><h4>Links</h4><div class="links">${p.fragranticaUrl?`<a href="${esc(p.fragranticaUrl)}" target="_blank" rel="noopener">Fragrantica ↗</a>`:""}${p.scentidoUrl?`<a href="${esc(p.scentidoUrl)}" target="_blank" rel="noopener">Scentido ↗</a>`:""}</div></section>`:""}
+    <div class="actions">
+      <button class="btn primary" onclick="openForm('${esc(p.id)}')">Editar</button>
+      ${p.tipo==="desejo"?`<button class="btn" onclick="moveTo('${esc(p.id)}','tenho')">Comprei, mover para a coleção</button>`:`<button class="btn" onclick="moveTo('${esc(p.id)}','desejo')">Mover para desejos</button>`}
+      <button class="btn danger" id="delbtn" onclick="askDelete('${esc(p.id)}')">Excluir</button>
+    </div><div id="delzone"></div>
+  </div>`);
+  if(sc)document.querySelector(".sheet").scrollTop=sc;
+  if(p.tipo==="desejo"&&p.precos)renderGrounding($("gsugg"),groundingFromSaved(p.precos));
+}
+async function moveTo(id,tipo){const p=state.items.find(x=>x.id===id);if(!p)return;const {id:_,...d}=p;d.tipo=tipo;if(await save(id,d))toast(tipo==="tenho"?"Movido para a coleção":"Movido para desejos")}
+function askDelete(id){$("delzone").innerHTML=`<div class="confirm" style="margin-top:12px">Excluir este perfume de vez?<button class="btn danger" onclick="doDelete('${esc(id)}')">Sim, excluir</button><button class="btn" onclick="$('delzone').innerHTML=''">Cancelar</button></div>`}
+async function dupeToWish(id,i){
+  const p=state.items.find(x=>x.id===id); const d=p?.contratipos?.[i]; if(!d)return;
+  if(await save(null,{tipo:"desejo",nome:d.nome,marca:d.marca||"",categoria:"Contratipo",inspiradoEm:`${p.nome}${p.marca?" ("+p.marca+")":""}`,preco:"",precos:d.preco?{data:Date.now(),fonte:"Scentido",ofertas:[{loja:"Scentido (lojas parceiras)",preco:Number(d.preco),titulo:""}]}:null,scentidoUrl:d.url||"",dono:p.dono||"casal",acordes:p.acordes||[],piramide:p.piramide||{},fonteDados:"Acordes e pirâmide copiados do original como referência."}))
+    toast(`${d.nome} foi para a lista de desejos`);
+}
+
+/* ---------- Borji & Co ---------- */
+const BORJI="https://www.borjieco.com.br/";
+const STOP=new Set(["de","da","do","des","du","di","d","l","s","the","for","pour","le","la","les","eau","parfum","perfume","perfumes","edp","edt","extrait","toilette","cologne","e","and","et","by","parfums","&"]);
+const tok=s=>plain(s).replace(/[^a-z0-9]+/g," ").split(" ").filter(w=>w&&!STOP.has(w));
+const tcase=s=>String(s||"").toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+function borjiMatches(p){
+  if(!borji||!Array.isArray(borji.itens))return [];
+  if(/borji/.test(plain(p.marca))){const n=plain(p.nome).trim();return borji.itens.filter(x=>plain(x.n)===n).map(x=>({...x,extra:0,self:true}))}
+  const insp=(p.inspiradoEm||"").replace(/\(.*?\)/g," ");
+  const nameT=tok(insp||p.nome);
+  if(!nameT.length)return [];
+  const allT=new Set(tok([p.inspiradoEm||"",p.nome,p.marca].join(" ")));
+  const out=[];
+  for(const x of borji.itens){
+    const it=tok(x.i), set=new Set(it);
+    if(!nameT.every(t=>set.has(t)))continue;
+    const extra=it.filter(t=>!allT.has(t)).length;
+    if(extra<=2)out.push({...x,extra});
+  }
+  return out.sort((a,b)=>a.extra-b.extra||(b.p>0)-(a.p>0)||a.i.length-b.i.length).slice(0,3);
+}
+function borjiSection(p){
+  if(!borji)return "";
+  const m=borjiMatches(p);
+  const quando=borji.atualizadoEm?new Date(borji.atualizadoEm).toLocaleDateString("pt-BR"):"";
+  const row=x=>`<div class="dupe"><div class="nm"><a href="${esc(BORJI+x.u)}" target="_blank" rel="noopener" style="color:inherit">${esc(tcase(x.n))}</a> <span class="mk">· inspirado em ${esc(x.i)}</span></div>
+    <div class="act">${x.p>0?`<span class="price">${esc(money(x.p))}</span>`:`<span class="pill off">indisponível</span>`}${x.self?"":`<button class="btn" style="padding:4px 10px;font-size:12px" onclick="borjiToWish('${esc(p.id)}','${esc(x.u)}')">+ Desejos</button>`}</div>
+    <div class="sim">${x.self?"este perfume na loja":x.extra?"versão parecida":"mesma inspiração"}${x.g?" · "+esc(x.g.toLowerCase()):""}</div></div>`;
+  return `<section class="blk"><h4>Borji &amp; Co</h4>${m.length?`<div class="dupes">${m.map(row).join("")}</div>`:`<div class="notice">A Borji &amp; Co não tem um contratipo deste perfume no catálogo.</div>`}
+    <div class="src">Catálogo de ${esc(quando)} · ${esc(borji.itens.length)} perfumes</div></section>`;
+}
+async function borjiToWish(id,u){
+  const p=state.items.find(x=>x.id===id), x=borji?.itens?.find(i=>i.u===u); if(!p||!x)return;
+  const ok=await save(null,{tipo:"desejo",nome:tcase(x.n),marca:"Borji & Co",categoria:"Contratipo",inspiradoEm:x.i,dono:p.dono||"casal",preco:"",
+    acordes:p.acordes||[],piramide:p.piramide||{},fonteDados:"Acordes e pirâmide copiados do original como referência.",
+    precos:x.p>0?{data:borji.atualizadoEm||Date.now(),fonte:"Borji & Co",ofertas:[{loja:"Borji & Co",preco:x.p,titulo:"",url:BORJI+x.u}]}:null});
+  if(ok)toast(`${tcase(x.n)} foi para a lista de desejos`);
+}
+
+/* ---------- preços (lista de desejos) ---------- */
+function shopLinks(p){
+  const q=encodeURIComponent([p.nome,p.marca,p.concentracao,p.tamanhoMl?p.tamanhoMl+"ml":""].filter(Boolean).join(" "));
+  const ml=plain([p.nome,p.marca].join(" ")).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return [["Google Shopping",`https://www.google.com/search?tbm=shop&q=${q}`],["Zoom",`https://www.zoom.com.br/search?q=${q}`],
+    ["Buscapé",`https://www.buscape.com.br/search?q=${q}`],["Mercado Livre",`https://lista.mercadolivre.com.br/${ml}`]];
+}
+function bestPrice(p){const o=(p.precos?.ofertas||[]).filter(x=>Number(x.preco)>0);return o.length?Math.min(...o.map(x=>Number(x.preco))):null}
+function priceSection(p){
+  const pr=p.precos, alvo=Number(p.preco)||0, of=(pr?.ofertas||[]).slice().sort((a,b)=>a.preco-b.preco);
+  const quando=pr?.data?new Date(pr.data).toLocaleString("pt-BR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  return `<section class="blk"><h4>Preços</h4>
+    <div class="pricehead"><div>${alvo?`Preço-alvo <b class="price">${esc(money(alvo))}</b>`:`<span class="sub">Sem preço-alvo. Defina em Editar.</span>`}</div>
+      <button class="btn" id="b-price" onclick="searchPrices('${esc(p.id)}')">Pesquisar preços agora</button></div>
+    <div class="status" id="pstatus">${pr?`Última pesquisa: ${esc(quando)} · ${esc(pr.fonte||"")}`:""}</div>
+    ${of.length?`<div class="offers">${of.map(o=>`<div class="offer"><span class="lj">${o.url?`<a href="${esc(o.url)}" target="_blank" rel="noopener">${esc(o.loja)}</a>`:esc(o.loja)}${o.titulo?`<small>${esc(o.titulo)}</small>`:""}</span><span class="price">${esc(money(o.preco))}</span>${alvo&&o.preco<=alvo?`<span class="pill ok">abaixo do alvo</span>`:""}</div>`).join("")}</div>`:""}
+    <div id="gsugg"></div>
+    <div class="links" style="margin-top:10px">${shopLinks(p).map(([n,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener">${n} ↗</a>`).join("")}</div>
+  </section>`;
+}
+/* ---------- formulário ---------- */
+let draft={};
+function openForm(id,preset){
+  const p=id?state.items.find(x=>x.id===id):null;
+  draft=p?JSON.parse(JSON.stringify(p)):{tipo:"tenho",dono:"casal",acordes:[],piramide:{},contratipos:[],...(preset||{})};
+  openId=null;
+  const seg=(name,opts,val)=>`<div class="seg" role="radiogroup">${opts.map(([v,l])=>`<label><input type="radio" name="${name}" id="${name}-${v}" value="${v}" ${val===v?"checked":""}><span>${l}</span></label>`).join("")}</div>`;
+  layer(`<div class="sheet-head"><div><div class="eyebrow">${p?"Editar perfume":"Novo perfume"}</div><h2>${p?esc(p.nome):"Adicionar ao acervo"}</h2></div>
+      <button class="btn ghost" onclick="closeLayer()" aria-label="Fechar">✕</button></div>
+    <form id="pf" autocomplete="off">
+      <div class="fieldset">${seg("tipo",[["tenho","Já temos"],["desejo","Desejo"]],draft.tipo)}${seg("dono",[["ele","Dele"],["ela","Dela"],["casal","Do casal"]],draft.dono)}</div>
+      <div class="fetchbox">
+        <div class="fetchrow"><label>Link do Fragrantica<input id="f-frag" type="url" inputmode="url" placeholder="https://www.fragrantica.com.br/perfume/…" value="${esc(draft.fragranticaUrl||"")}"></label>
+          <button type="button" class="btn" id="b-frag">Buscar acordes</button></div>
+        <div class="fetchrow"><label>Link do Scentido<input id="f-scen" type="url" inputmode="url" placeholder="https://www.scentido.com.br/perfumes-referencia/…" value="${esc(draft.scentidoUrl||"")}"></label>
+          <button type="button" class="btn" id="b-scen">Buscar contratipos</button></div>
+        <div class="status" id="fstatus">Cole um link e toque em buscar: o Gemini preenche os campos para vocês conferirem antes de salvar.</div>
+        <div id="gsrc"></div>
+      </div>
+      <div class="fieldset">
+        <div class="row"><label>Nome<input id="f-nome" required value="${esc(draft.nome||"")}"></label><label>Marca<input id="f-marca" value="${esc(draft.marca||"")}"></label></div>
+        <div class="row"><label>Categoria<select id="f-cat"><option value=""></option>${CATS.map(c=>`<option ${draft.categoria===c?"selected":""}>${c}</option>`).join("")}</select></label>
+          <label>Concentração<select id="f-conc">${CONC.map(c=>`<option ${draft.concentracao===c?"selected":""}>${c}</option>`).join("")}</select></label></div>
+        <div class="row"><label>Inspirado em (se for contratipo)<input id="f-insp" value="${esc(draft.inspiradoEm||"")}"></label><label>Família olfativa<input id="f-fam" value="${esc(draft.familia||"")}"></label></div>
+        <div class="row"><label>Tamanho (ml)<input id="f-ml" type="number" inputmode="numeric" min="0" value="${esc(draft.tamanhoMl||"")}"></label>
+          <label id="l-preco" ${draft.tipo==="desejo"?"":"hidden"}>Preço-alvo (R$)<input id="f-preco" type="number" inputmode="decimal" min="0" value="${esc(draft.preco||"")}"></label></div>
+        <div class="row"><label>Nota dele (0–10)<input id="f-ne" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEle||"")}"></label><label>Nota dela (0–10)<input id="f-na" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEla||"")}"></label></div>
+        <label>Comentários<textarea id="f-com" placeholder="Fixação na pele, ocasião, onde compraram…">${esc(draft.comentarios||"")}</textarea></label>
+      </div>
+      <div class="fieldset" id="preview"></div>
+      <div class="actions"><button class="btn primary" type="submit" id="b-save">Salvar</button><button class="btn" type="button" onclick="closeLayer()">Cancelar</button></div>
+    </form>`);
+  drawPreview();
+  document.querySelectorAll('input[name="tipo"]').forEach(r=>r.onchange=()=>{draft.tipo=r.value;$("l-preco").hidden=r.value!=="desejo"});
+  document.querySelectorAll('input[name="dono"]').forEach(r=>r.onchange=()=>draft.dono=r.value);
+  $("b-frag").onclick=()=>fetchFragrantica();
+  $("b-scen").onclick=()=>fetchScentido();
+  $("pf").onsubmit=async e=>{
+    e.preventDefault(); collect(); if(draft.tipo!=="desejo")draft.preco="";
+    if(!draft.nome){setStatus("Informe o nome do perfume.","err");$("f-nome").focus();return}
+    $("b-save").disabled=true;
+    const {id:_,...data}=draft;
+    const ok=await save(id,data); $("b-save").disabled=false;
+    if(ok){closeLayer();toast(id?"Alterações salvas":"Perfume adicionado")}
+  };
+}
+function collect(){
+  const v=i=>$(i).value.trim();
+  Object.assign(draft,{fragranticaUrl:v("f-frag"),scentidoUrl:v("f-scen"),nome:v("f-nome"),marca:v("f-marca"),categoria:v("f-cat"),concentracao:v("f-conc"),
+    inspiradoEm:v("f-insp"),familia:v("f-fam"),tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com")});
+}
+function drawPreview(){
+  const el=$("preview"); if(!el)return;
+  const acc=draft.acordes||[], py=draft.piramide||{}, d=draft.contratipos||[];
+  const max=Math.max(...acc.map(a=>Number(a.pct)||0),1);
+  el.innerHTML=(acc.length?`<div><div class="eyebrow" style="margin-bottom:8px">Acordes</div><div class="accords">${acc.map(a=>{const c=accColor(a.nome);return `<div class="acc" style="width:${Math.max(28,(Number(a.pct)||0)/max*100)}%;background:${c};color:${inkOn(c)}">${esc(a.nome)}</div>`}).join("")}</div></div>`:"")+
+    (((py.topo||[]).length+(py.coracao||[]).length+(py.fundo||[]).length)?`<div><div class="eyebrow" style="margin-bottom:8px">Pirâmide</div><div class="pyr">${tierHtml("Saída",py.topo)}${tierHtml("Coração",py.coracao)}${tierHtml("Fundo",py.fundo)}</div></div>`:"")+
+    (d.length?`<div><div class="eyebrow" style="margin-bottom:8px">Contratipos encontrados (${d.length})</div><div class="chips">${d.map(x=>`<span class="chip">${esc(x.nome)}${x.semelhanca?" · "+esc(x.semelhanca)+"%":""}</span>`).join("")}</div></div>`:"");
+}
+function setStatus(t,cls){const s=$("fstatus");if(!s)return;s.className="status"+(cls?" "+cls:"");s.innerHTML=t}
+
+/* ---------- leitura de links ---------- */
+function slugWords(s){return decodeURIComponent(s||"").replace(/\.html?$/,"").replace(/-\d+$/,"").replace(/[-_]+/g," ").trim()}
+function parseFrag(url){try{const u=new URL(url);if(!/fragrantica\./.test(u.hostname))return null;
+  const m=u.pathname.match(/\/(?:perfume|perfumes)\/([^/]+)\/([^/]+)/i);if(!m)return null;return {marca:slugWords(m[1]),nome:slugWords(m[2])}}catch(e){return null}}
+function parseScen(url){try{const u=new URL(url);if(!/scentido\./.test(u.hostname))return null;
+  const m=u.pathname.match(/\/(perfumes-referencia|perfumes-contratipos)\/([^/?#]+)/);if(!m)return null;return {tipo:m[1]==="perfumes-contratipos"?"contratipo":"original",slug:slugWords(m[2])}}catch(e){return null}}
+
+const ACC_RULES=`Regras: nomes de acordes e notas em português do Brasil e em minúsculas (ex.: "amadeirado","cítrico","fresco especiado","quente especiado","âmbar","baunilha","doce","aromático","couro","almiscarado","aquático","frutado","atalcado"); até 10 acordes; "concentracao" deve ser um de: Eau de Cologne, Eau de Toilette, Eau de Parfum, Parfum, Extrait de Parfum, Elixir, ou vazio; se o perfume não tiver pirâmide dividida, coloque todas as notas em "coracao". Não invente: se não encontrar a informação, deixe a lista vazia.`;
+
+async function fetchFragrantica(){
+  collect(); const url=draft.fragranticaUrl; const info=parseFrag(url);
+  if(!info){setStatus("Esse não parece um link de perfume do Fragrantica (…/perfume/Marca/Nome-123.html).","err");return}
+  const btn=$("b-frag"); btn.disabled=true;
+  setStatus(`<span class="spin"></span>O Gemini está lendo a ficha no Fragrantica…`);
+  const prompt=`Você organiza fichas de perfumes para um app brasileiro. Leia a página do Fragrantica ${url} (perfume "${info.nome}", marca "${info.marca}"). Se não conseguir abrir a página, pesquise no Google a ficha desse perfume no Fragrantica.
+Extraia os acordes principais na ordem em que aparecem (o primeiro é o mais forte); dê a cada um uma porcentagem de 0 a 100 proporcional à barra, com 100 para o primeiro. Extraia também a pirâmide olfativa (saída, coração, fundo), o ano, o perfumista, a concentração e a família olfativa.
+Responda SOMENTE com um JSON, sem nenhum texto antes ou depois, neste formato:
+{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]}}
+${ACC_RULES}`;
+  try{
+    const r=await askGemini(prompt);
+    renderGrounding($("gsrc"),r.grounding);
+    const j=r.json;
+    if(!j||(!(j.acordes||[]).length&&!((j.piramide?.topo||[]).length+(j.piramide?.coracao||[]).length+(j.piramide?.fundo||[]).length))){setStatus("O Gemini não encontrou os dados desse perfume. Tente de novo ou preencha à mão.","err");return}
+    draft.acordes=(j.acordes||[]).filter(a=>a&&a.nome).slice(0,10).map(a=>({nome:String(a.nome).toLowerCase(),pct:Math.max(0,Math.min(100,Math.round(Number(a.pct)||0)))}));
+    draft.piramide={topo:(j.piramide?.topo||[]).map(String),coracao:(j.piramide?.coracao||[]).map(String),fundo:(j.piramide?.fundo||[]).map(String)};
+    const fill=(id,v)=>{if(v&&!$(id).value)$(id).value=v};
+    fill("f-nome",j.nome||info.nome);fill("f-marca",j.marca||info.marca);fill("f-fam",j.familia);
+    if(j.concentracao&&!$("f-conc").value&&CONC.includes(j.concentracao))$("f-conc").value=j.concentracao;
+    if(j.ano)draft.ano=String(j.ano); if(j.perfumista)draft.perfumista=String(j.perfumista);
+    draft.fonteDados="Acordes e pirâmide preenchidos pelo Gemini a partir do Fragrantica. Confiram no site.";
+    drawPreview();
+    setStatus("Pronto. Confiram os dados e salvem.","ok");
+  }catch(e){setStatus(aiErr(e),"err")}
+  finally{btn.disabled=false}
+}
+
+async function fetchScentido(){
+  collect(); const url=draft.scentidoUrl; const info=parseScen(url);
+  if(!info){setStatus("Esse não parece um link de perfume do Scentido (…/perfumes-referencia/… ou …/perfumes-contratipos/…).","err");return}
+  const btn=$("b-scen"); btn.disabled=true;
+  setStatus(`<span class="spin"></span>O Gemini está lendo a página do Scentido…`);
+  const prompt=`Você ajuda um casal brasileiro a encontrar contratipos (perfumes inspirados). Leia a página do Scentido ${url}, que é a ficha de ${info.tipo==="contratipo"?"um contratipo":"um perfume original"} (identificador "${info.slug}").
+Liste os contratipos que a página mostra, com a % de semelhança, o preço em reais e o link da ficha de cada um no Scentido, quando aparecerem. Use só o que estiver na página; não invente preços nem porcentagens.
+${info.tipo==="contratipo"?"Como é a página de um contratipo, informe também em qual perfume original ele é inspirado em \"inspiradoEm\" no formato \"Nome (Marca)\" e liste outros contratipos do mesmo original.":""}
+Responda SOMENTE com um JSON, sem texto antes ou depois:
+{"nome":"","marca":"","inspiradoEm":"","contratipos":[{"nome":"","marca":"","semelhanca":85,"preco":199,"url":""}]}
+"nome" e "marca" são do perfume da página. Até 12 contratipos, os mais parecidos primeiro.`;
+  try{
+    const r=await askGemini(prompt);
+    renderGrounding($("gsrc"),r.grounding);
+    const j=r.json||{};
+    const num=v=>v!=null&&v!==""&&!isNaN(Number(v))?Number(v):"";
+    const list=(j.contratipos||[]).filter(d=>d&&d.nome).slice(0,12).map(d=>({nome:String(d.nome),marca:String(d.marca||""),semelhanca:num(d.semelhanca)!==""?Math.round(num(d.semelhanca)):"",preco:num(d.preco),url:/^https?:\/\//.test(d.url||"")?String(d.url):""}));
+    draft.contratipos=list;
+    const fill=(id,v)=>{if(v&&!$(id).value)$(id).value=v};
+    fill("f-nome",j.nome);fill("f-marca",j.marca);
+    if(info.tipo==="contratipo"){fill("f-insp",j.inspiradoEm);if(!$("f-cat").value)$("f-cat").value="Contratipo"}
+    drawPreview();
+    setStatus(list.length?`${list.length} contratipos encontrados. Salvem para guardar.`:"O Gemini não encontrou contratipos nessa página.",list.length?"ok":"err");
+  }catch(e){setStatus(aiErr(e),"err")}
+  finally{btn.disabled=false}
+}
+
+async function searchPrices(id){
+  const p=state.items.find(x=>x.id===id); if(!p)return;
+  const st=$("pstatus"), b=$("b-price"); b.disabled=true; st.className="status";
+  st.innerHTML=`<span class="spin"></span>O Gemini está pesquisando preços…`;
+  const alvo=[p.nome,p.marca,p.concentracao,p.tamanhoMl?p.tamanhoMl+" ml":""].filter(Boolean).join(", ");
+  const prompt=`Pesquise no Google o preço atual, em lojas que vendem no Brasil, do perfume: ${alvo}.
+Considere só este perfume (mesmo nome, marca e concentração; se o tamanho foi informado, prefira esse tamanho). Ignore kits, miniaturas, decants, amostras e outros perfumes da mesma linha. Use apenas preços que aparecem nas páginas encontradas; não estime.
+Responda SOMENTE com um JSON, sem texto antes ou depois:
+{"ofertas":[{"loja":"","preco":0,"titulo":"descrição curta com o tamanho","url":"link da oferta"}]}
+Até 8 ofertas, da mais barata para a mais cara, preço em reais como número. Se não encontrar, devolva {"ofertas":[]}.`;
+  try{
+    const r=await askGemini(prompt);
+    const of=(r.json?.ofertas||[]).filter(o=>o&&o.loja&&Number(o.preco)>0).slice(0,8).map(o=>({loja:String(o.loja),preco:Number(o.preco),titulo:String(o.titulo||"").slice(0,90),url:/^https?:\/\//.test(o.url||"")?String(o.url):""}));
+    const {id:_,...d}=p; d.precos={data:Date.now(),fonte:"Gemini + Pesquisa Google",ofertas:of,...slimGrounding(r.grounding)};
+    await save(id,d);
+    toast(of.length?`${of.length} ofertas encontradas`:"Nenhuma oferta encontrada agora");
+  }catch(e){const s2=$("pstatus");if(s2){s2.className="status err";s2.textContent=aiErr(e)}}
+  finally{const bb=$("b-price");if(bb)bb.disabled=false}
+}
+
+/* ---------- ajustes: conta, backup, catálogo Borji ---------- */
+$("menu").onclick=openMenu;
+function openMenu(){
+  openId=null;
+  const quando=borji?.atualizadoEm?new Date(borji.atualizadoEm).toLocaleDateString("pt-BR"):"";
+  layer(`<div class="sheet-head"><div><div class="eyebrow">Conta</div><h2>Ajustes</h2><div class="sub">${esc(state.user?.email||"")}</div></div>
+      <button class="btn ghost" onclick="closeLayer()" aria-label="Fechar">✕</button></div>
+    <section class="blk"><h4>Backup da coleção</h4>
+      <div class="links"><button class="btn" onclick="exportBackup()">Exportar (.json)</button><label class="btn" for="imp">Importar backup</label><input type="file" accept="application/json,.json" id="imp" hidden></div>
+      <div class="status" id="mstatus">O backup guarda todos os perfumes, desejos e notas.</div></section>
+    <section class="blk"><h4>Catálogo Borji &amp; Co</h4>
+      <p class="sub">${borji?`${esc(borji.itens.length)} perfumes · atualizado em ${esc(quando)}`:"Ainda não carregado."}</p>
+      <button class="btn" id="b-borji" onclick="refreshBorji()">Atualizar com o Gemini</button>
+      <div class="status" id="bstatus"></div></section>
+    <div class="actions"><button class="btn danger" onclick="logout()">Sair da conta</button></div>`);
+  $("imp").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
+}
+function exportBackup(){
+  const data={app:"acervo-olfativo",versao:1,exportadoEm:new Date().toISOString(),perfumes:state.items};
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  a.download=`acervo-olfativo-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.append(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+async function importBackup(file){
+  const st=$("mstatus");
+  try{
+    const j=JSON.parse(await file.text());
+    const list=Array.isArray(j)?j:(j.perfumes||[]);
+    if(!list.length){st.className="status err";st.textContent="Esse arquivo não tem perfumes.";return}
+    let n=0;
+    for(const x of list){
+      if(!x||!x.nome)continue;
+      const {id,...d}=x;
+      const ref=id?fb.doc(state.col,String(id)):fb.doc(state.col);
+      fb.setDoc(ref,d).catch(()=>{}); n++;
+    }
+    st.className="status ok";st.textContent=`${n} perfumes importados.`;
+  }catch(e){st.className="status err";st.textContent="Não consegui ler esse arquivo. Use um backup exportado pelo app."}
+}
+async function refreshBorji(){
+  const b=$("b-borji"), st=$("bstatus"); b.disabled=true; st.className="status";
+  const base="https://www.borjieco.com.br/";
+  const all=new Map();
+  const price=s=>{s=String(s||"").replace(/[^\d.,]/g,"");if(!s)return 0;if(s.includes(","))s=s.replace(/\./g,"").replace(",",".");return Number(s)||0};
+  try{
+    for(let start=1;start<=29;start+=4){
+      st.innerHTML=`<span class="spin"></span>Lendo as páginas ${start} a ${start+3} da loja…`;
+      const urls=[0,1,2,3].map(i=>`${base}CategoriaId_0,${start+i},destaque.html`);
+      const prompt=`Abra estas páginas da listagem de produtos da loja Borji & Co e liste TODOS os produtos de cada uma:
+${urls.join("\n")}
+Escreva uma linha por produto, exatamente no formato abaixo, e nada mais:
+TÍTULO COMPLETO DO PRODUTO | preço em reais (0 se indisponível) | URL completa do produto
+Se uma página não existir ou não tiver produtos, ignore-a.`;
+      const r=await askGemini(prompt);
+      let found=0;
+      for(const line of (r.text||"").split("\n")){
+        const parts=line.replace(/^[-*\d.\s]+(?=[A-Za-zÀ-ú0-9])/,"").split("|").map(s=>s.trim());
+        if(parts.length<3)continue;
+        const m=parts[0].match(/^(.+?)\s+PERFUME\s+INSPIRADO:\s*(.+)$/i);
+        const url=(parts[2].match(/https?:\/\/\S+/)||[""])[0];
+        if(!m||!url.startsWith(base))continue;
+        let insp=m[2].replace(/\s*C[ÓO]D\..*$/i,"").trim();
+        const g=(insp.match(/\(\s*(Masculino|Feminino|Compartilh[aá]vel)\s*\)\s*$/i)||[])[1]||"";
+        insp=insp.replace(/\s*\(\s*(Masculino|Feminino|Compartilh[aá]vel)\s*\)\s*$/i,"").trim();
+        const u=url.slice(base.length);
+        if(!all.has(u)){all.set(u,{n:m[1].trim(),i:insp,g,p:/indispon/i.test(parts[1])?0:price(parts[1]),u});found++}
+      }
+      if(!found)break;
+    }
+    const itens=[...all.values()];
+    const atual=borji?.itens?.length||0;
+    if(itens.length<Math.max(20,atual*0.8)){
+      st.className="status err";st.textContent=`O Gemini só conseguiu ler ${itens.length} perfumes, então mantive o catálogo atual (${atual}). Tente de novo mais tarde.`;
+      return;
+    }
+    const novo={itens,atualizadoEm:Date.now(),total:itens.length,fonte:base+"produtos"};
+    await fb.setDoc(fb.doc(fb.db,"lojas","borji"),novo);
+    borji=novo; render();
+    st.className="status ok";st.textContent=`Catálogo atualizado: ${itens.length} perfumes.`;
+  }catch(e){st.className="status err";st.textContent=aiErr(e)}
+  finally{const bb=$("b-borji");if(bb)bb.disabled=false}
+}
+
+if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+
+</script>
+</body>
+</html>
