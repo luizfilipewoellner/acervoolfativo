@@ -41,7 +41,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
-.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:18px 10px;flex-wrap:wrap}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:18px 10px;flex-wrap:wrap;position:relative;padding-right:44px}
+.top #menu{position:absolute;right:-8px;top:12px}
 .brand h1{font-family:var(--display);font-weight:400;font-style:italic;font-size:clamp(28px,5vw,40px);line-height:1;margin:0;letter-spacing:-.01em}
 .brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
 .stats{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted)}
@@ -63,12 +64,13 @@ select.f{border:1px solid var(--line);background:var(--surface);border-radius:99
 main{padding-block:22px 60px}
 .notice{border:1px dashed var(--line);border-radius:var(--r);padding:14px 16px;color:var(--muted);margin-bottom:18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;cursor:pointer;display:flex;flex-direction:column;gap:10px;text-align:left;transition:transform .15s,border-color .15s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;cursor:pointer;display:grid;grid-template-columns:76px minmax(0,1fr);gap:14px;align-items:start;text-align:left;transition:transform .15s,border-color .15s}
+.card .cb{display:flex;flex-direction:column;gap:9px;min-width:0;height:100%}
 .card:hover{transform:translateY(-2px);border-color:var(--muted)}
 .card .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.card .ph{margin:-16px -16px 2px;height:190px;border-radius:var(--r) var(--r) 0 0;background:var(--sunk);display:grid;place-items:center;overflow:hidden}
-.card .ph img{width:100%;height:100%;object-fit:contain;padding:8px;box-sizing:border-box}
-.card .ph svg{height:118px;width:auto}
+.card .ph{width:76px;height:100px;border-radius:10px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
+.card .ph img{width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box}
+.card .ph svg{height:72px;width:auto}
 .dphoto{margin:14px 0 4px;border-radius:var(--r);background:var(--sunk);display:grid;place-items:center;overflow:hidden;max-height:340px}
 .dphoto img{width:100%;max-height:340px;object-fit:contain}
 .photofield{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
@@ -76,8 +78,8 @@ main{padding-block:22px 60px}
 .photofield .thumb img{width:100%;height:100%;object-fit:cover}.photofield .thumb svg{height:70px}
 .photofield .pfb{display:flex;flex-direction:column;gap:6px;flex:1 1 180px;min-width:0}
 .photofield .pfb .links{gap:6px}
-.card h3{font-family:var(--display);font-weight:500;font-size:21px;line-height:1.15;margin:0;text-wrap:balance}
-.card .marca{color:var(--muted);font-size:13px;margin-top:-6px}
+.card h3{font-family:var(--display);font-weight:500;font-size:19px;line-height:1.15;margin:0;text-wrap:balance}
+.card .marca{color:var(--muted);font-size:13px;margin-top:-5px}
 .strip{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--sunk)}
 .strip span{display:block;height:100%}
 .chips{display:flex;flex-wrap:wrap;gap:5px}
@@ -161,6 +163,13 @@ form textarea{min-height:70px;resize:vertical}
 .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
 .iconbtn{font-size:20px;line-height:1;padding:6px 12px}
+@media (max-width:560px){
+  .bar .search{flex:1 1 100%;order:2}
+  .bar .tabs{order:1}
+  .bar select.f{order:3;flex:1 1 0;min-width:0}
+  .bar #add{order:4}
+  .stats{gap:14px}.stats b{font-size:20px}
+}
 .login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
 .loginbox{width:min(380px,100%);display:flex;flex-direction:column;gap:12px}
 .loginbox h1{font-family:var(--display);font-style:italic;font-weight:400;font-size:40px;margin:0;line-height:1}
@@ -181,6 +190,7 @@ input,select,textarea{font-size:16px}
         <p>A coleção de perfumes do casal</p>
       </div>
       <div class="stats" id="stats"></div>
+      <button class="btn ghost iconbtn" id="menu" aria-label="Ajustes">⋯</button>
     </div>
     <div class="bar">
       <div class="tabs" role="tablist">
@@ -189,13 +199,12 @@ input,select,textarea{font-size:16px}
       </div>
       <input class="search" id="q" type="search" placeholder="Buscar nome, marca, nota ou acorde">
       <select class="f" id="fdono" aria-label="Filtrar por dono">
-        <option value="">Todos</option><option value="ele">Dele</option><option value="ela">Dela</option><option value="casal">Do casal</option>
+        <option value="">Todos</option><option value="ele">Luiz Filipe</option><option value="ela">Heloíse</option><option value="casal">Compartilhado</option>
       </select>
       <select class="f" id="fcat" aria-label="Filtrar por categoria">
-        <option value="">Todas categorias</option>
+        <option value="">Categorias</option>
       </select>
       <button class="btn primary" id="add">+ Adicionar</button>
-      <button class="btn ghost iconbtn" id="menu" aria-label="Ajustes">⋯</button>
     </div>
   </div>
 </header>
@@ -223,7 +232,11 @@ input,select,textarea{font-size:16px}
 <script>
 const CATS=["Nicho","Designer","Nacional","Árabe","Contratipo"];
 const CONC=["","Eau de Cologne","Eau de Toilette","Eau de Parfum","Parfum","Extrait de Parfum","Elixir","Body splash"];
-const DONO={ele:"Dele",ela:"Dela",casal:"Do casal"};
+const DONO={ele:"Luiz Filipe",ela:"Heloíse",casal:"Compartilhado"};
+// Na lista de desejos não há dono: o campo vira "Para quem".
+const PARA={ele:"Para Luiz Filipe",ela:"Para Heloíse",casal:"Para os dois"};
+const donoTxt=p=>(p.tipo==="desejo"?PARA:DONO)[p.dono]||"";
+function donoOpts(tipo){return tipo==="desejo"?[["ele","Luiz Filipe"],["ela","Heloíse"],["casal","Os dois"]]:[["ele","Luiz Filipe"],["ela","Heloíse"],["casal","Compartilhado"]]}
 const ACC_COLORS={
   "amadeirado":"#7b4f2a","cítrico":"#f2d64b","floral":"#f4a6c6","floral branco":"#f6e7ee","rosa":"#e2577a","fresco especiado":"#9ccc7e",
   "quente especiado":"#c6502d","especiado":"#c6502d","âmbar":"#c8872c","ambarado":"#c8872c","baunilha":"#f1dab0","doce":"#e5658e","aromático":"#4f9a8b",
@@ -519,9 +532,10 @@ function slimGrounding(gm){
 function groundingFromSaved(pr){return pr?{searchEntryPoint:pr.sugestoes?{renderedContent:pr.sugestoes}:null,groundingChunks:(pr.fontes||[]).map(f=>({web:{uri:f.u,title:f.t}}))}:null}
 
 /* ---------- lista ---------- */
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t===b));render()});
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;syncDonoFilter();document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t===b));render()});
 $("q").oninput=e=>{state.q=e.target.value.toLowerCase();render()};
 $("fdono").onchange=e=>{state.dono=e.target.value;render()};
+function syncDonoFilter(){const d=state.tab==="desejo";const o=$("fdono").options;o[0].text=d?"Para todos":"Todos";o[3].text=d?"Os dois":"Compartilhado";$("fdono").setAttribute("aria-label",d?"Filtrar por para quem":"Filtrar por dono")}
 $("fcat").onchange=e=>{state.cat=e.target.value;render()};
 $("add").onclick=()=>openForm(null,{tipo:state.tab});
 
@@ -538,8 +552,9 @@ function render(){
   const fT=tenho.filter(matches), fD=desejo.filter(matches);
   $("n-tenho").textContent=fT.length; $("n-desejo").textContent=fD.length;
   const marcas=new Set(fT.map(p=>(p.marca||"").toLowerCase()).filter(Boolean)).size;
-  const quem={ele:"dele",ela:"dela",casal:"do casal"}[state.dono]||"";
-  $("stats").innerHTML=`<div><b>${fT.length}</b>frascos${quem?" "+quem:""}</div><div><b>${marcas}</b>marcas</div><div><b>${fD.length}</b>desejos</div>`;
+  const quem={ele:"de Luiz Filipe",ela:"de Heloíse",casal:"compartilhados"}[state.dono]||"";
+  const paraQ={ele:"para Luiz Filipe",ela:"para Heloíse",casal:"para os dois"}[state.dono]||"";
+  $("stats").innerHTML=`<div><b>${fT.length}</b>frascos${quem?" "+quem:""}</div><div><b>${marcas}</b>marcas</div><div><b>${fD.length}</b>desejos${paraQ?" "+paraQ:""}</div>`;
   const list=(state.tab==="desejo"?desejo:tenho).filter(matches)
     .sort((a,b)=>(b.criadoEm||0)-(a.criadoEm||0));
   const grid=$("grid"), empty=$("empty");
@@ -560,12 +575,12 @@ function card(p){
   const notes=acc.slice(0,3).map(a=>`<span class="chip">${esc(a.nome)}</span>`).join("");
   return `<button class="card" data-id="${esc(p.id)}">
     <div class="ph">${photoOf(p)?`<img src="${esc(photoOf(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(bottleEl('${esc(accColor((p.acordes||[])[0]?.nome||""))}'))">`:bottleSvg(p)}</div>
-    <div class="meta"><span>${esc(p.concentracao||"")}</span><span>${p.tamanhoMl?esc(p.tamanhoMl)+" ml":""}</span></div>
+    <div class="cb"><div class="meta"><span>${esc(p.concentracao||"")}</span><span>${p.tamanhoMl?esc(p.tamanhoMl)+" ml":""}</span></div>
     <h3>${esc(p.nome||"Sem nome")}</h3><div class="marca">${esc(p.marca||"")}</div>
     ${strip}
     ${p.tipo==="desejo"&&bestPrice(p)?`<div class="best">a partir de <b>${esc(money(bestPrice(p)))}</b>${Number(p.preco)&&bestPrice(p)<=Number(p.preco)?' <span class="pill ok">no alvo</span>':''}</div>`:""}
-    <div class="chips">${p.categoria?`<span class="chip cat">${esc(p.categoria)}</span>`:""}${p.dono?`<span class="chip dono">${esc(DONO[p.dono]||p.dono)}</span>`:""}${borjiMatches(p).some(x=>!x.self)?'<span class="chip borji">na Borji</span>':''}${notes}</div>
-    <div class="foot"><span>${p.inspiradoEm?"↳ "+esc(p.inspiradoEm):""}</span><span>${(p.contratipos||[]).length?esc(p.contratipos.length)+" contratipos":""}</span></div>
+    <div class="chips">${p.categoria?`<span class="chip cat">${esc(p.categoria)}</span>`:""}${p.dono?`<span class="chip dono">${esc(donoTxt(p))}</span>`:""}${borjiMatches(p).some(x=>!x.self)?'<span class="chip borji">na Borji</span>':''}${notes}</div>
+    <div class="foot"><span>${p.inspiradoEm?"↳ "+esc(p.inspiradoEm):""}</span><span>${(p.contratipos||[]).length?esc(p.contratipos.length)+((p.contratipos.length>1)?" contratipos":" contratipo"):""}</span></div></div>
   </button>`;
 }
 
@@ -623,9 +638,9 @@ function openDetail(id,keepScroll){
   const tier=tierHtml;
   const hasPyr=(py.topo||[]).length+(py.coracao||[]).length+(py.fundo||[]).length>0;
   const dupes=p.contratipos||[];
-  const kv=[["Categoria",p.categoria],["Concentração",p.concentracao],["Tamanho",p.tamanhoMl&&p.tamanhoMl+" ml"],["Dono",DONO[p.dono]],
+  const kv=[["Categoria",p.categoria],["Concentração",p.concentracao],["Tamanho",p.tamanhoMl&&p.tamanhoMl+" ml"],[p.tipo==="desejo"?"Para quem":"Dono",(p.tipo==="desejo"?{ele:"Luiz Filipe",ela:"Heloíse",casal:"Os dois"}:DONO)[p.dono]],
     ["Família",p.familia],["Ano",p.ano],["Perfumista",p.perfumista],
-    ["Nota dele",p.notaEle&&p.notaEle+"/10"],["Nota dela",p.notaEla&&p.notaEla+"/10"]].filter(x=>x[1]);
+    ["Nota de Luiz Filipe",p.notaEle&&p.notaEle+"/10"],["Nota de Heloíse",p.notaEla&&p.notaEla+"/10"]].filter(x=>x[1]);
   layer(`<div id="detail-root">
     <div class="sheet-head"><div><div class="eyebrow">${p.tipo==="desejo"?"Lista de desejos":"Na coleção"}</div>
       <h2>${esc(p.nome)}</h2><div class="sub">${esc(p.marca||"")}${p.inspiradoEm?` · inspirado em ${esc(p.inspiradoEm)}`:""}</div></div>
@@ -730,7 +745,7 @@ function openForm(id,preset){
   layer(`<div class="sheet-head"><div><div class="eyebrow">${p?"Editar perfume":"Novo perfume"}</div><h2>${p?esc(p.nome):"Adicionar ao acervo"}</h2></div>
       <button class="btn ghost" onclick="closeLayer()" aria-label="Fechar">✕</button></div>
     <form id="pf" autocomplete="off">
-      <div class="fieldset">${seg("tipo",[["tenho","Já temos"],["desejo","Desejo"]],draft.tipo)}${seg("dono",[["ele","Dele"],["ela","Dela"],["casal","Do casal"]],draft.dono)}</div>
+      <div class="fieldset">${seg("tipo",[["tenho","Já temos"],["desejo","Desejo"]],draft.tipo)}<div class="eyebrow" id="l-dono">${draft.tipo==="desejo"?"Para quem":"Dono"}</div><div id="dono-seg">${seg("dono",donoOpts(draft.tipo),draft.dono)}</div></div>
       <div class="fetchbox">
         <div class="fetchrow"><label>Link do Fragrantica<input id="f-frag" type="url" inputmode="url" placeholder="https://www.fragrantica.com.br/perfume/…" value="${esc(draft.fragranticaUrl||"")}"></label>
           <button type="button" class="btn" id="b-frag">Buscar acordes</button></div>
@@ -753,7 +768,7 @@ function openForm(id,preset){
         <div class="row"><label>Inspirado em (se for contratipo)<input id="f-insp" value="${esc(draft.inspiradoEm||"")}"></label><label>Família olfativa<input id="f-fam" value="${esc(draft.familia||"")}"></label></div>
         <div class="row"><label>Tamanho (ml)<input id="f-ml" type="number" inputmode="numeric" min="0" value="${esc(draft.tamanhoMl||"")}"></label>
           <label id="l-preco" ${draft.tipo==="desejo"?"":"hidden"}>Preço-alvo (R$)<input id="f-preco" type="number" inputmode="decimal" min="0" value="${esc(draft.preco||"")}"></label></div>
-        <div class="row"><label>Nota dele (0–10)<input id="f-ne" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEle||"")}"></label><label>Nota dela (0–10)<input id="f-na" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEla||"")}"></label></div>
+        <div class="row"><label>Nota de Luiz Filipe (0–10)<input id="f-ne" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEle||"")}"></label><label>Nota de Heloíse (0–10)<input id="f-na" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEla||"")}"></label></div>
         <label>Comentários<textarea id="f-com" placeholder="Fixação na pele, ocasião, onde compraram…">${esc(draft.comentarios||"")}</textarea></label>
       </div>
       <div class="fieldset" id="preview"></div>
@@ -767,8 +782,10 @@ function openForm(id,preset){
   $("f-fotourl").oninput=e=>{draft.fotoUrl=e.target.value.trim();if(draft.fotoUrl)draft.foto="";drawThumb()};
   ["f-frag","f-marca"].forEach(i=>$(i).addEventListener("input",()=>drawThumb()));
   $("f-nofoto").onclick=()=>{draft.foto="";draft.fotoUrl="";$("f-fotourl").value="";drawThumb()};
-  document.querySelectorAll('input[name="tipo"]').forEach(r=>r.onchange=()=>{draft.tipo=r.value;$("l-preco").hidden=r.value!=="desejo"});
-  document.querySelectorAll('input[name="dono"]').forEach(r=>r.onchange=()=>draft.dono=r.value);
+  const bindDono=()=>document.querySelectorAll('input[name="dono"]').forEach(r=>r.onchange=()=>draft.dono=r.value);
+  document.querySelectorAll('input[name="tipo"]').forEach(r=>r.onchange=()=>{draft.tipo=r.value;$("l-preco").hidden=r.value!=="desejo";
+    $("l-dono").textContent=r.value==="desejo"?"Para quem":"Dono";$("dono-seg").innerHTML=seg("dono",donoOpts(r.value),draft.dono);bindDono()});
+  bindDono();
   $("b-frag").onclick=()=>fetchFragrantica();
   $("b-scen").onclick=()=>fetchScentido();
   $("pf").onsubmit=async e=>{
