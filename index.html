@@ -166,8 +166,8 @@ form textarea{min-height:70px;resize:vertical}
 @media (max-width:560px){
   .bar .search{flex:1 1 100%;order:2}
   .bar .tabs{order:1}
-  .bar select.f{order:3;flex:1 1 0;min-width:0}
-  .bar #add{order:4}
+  .bar select.f{order:3;flex:1 1 0;min-width:0;padding-left:10px;padding-right:6px}
+  .bar #add{order:1;margin-left:auto}
   .stats{gap:14px}.stats b{font-size:20px}
 }
 .login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
@@ -203,6 +203,9 @@ input,select,textarea{font-size:16px}
       </select>
       <select class="f" id="fcat" aria-label="Filtrar por categoria">
         <option value="">Categorias</option>
+      </select>
+      <select class="f" id="fsort" aria-label="Ordenar">
+        <option value="recentes">Mais recentes</option><option value="nome">Perfume A–Z</option><option value="marca">Marca A–Z</option>
       </select>
       <button class="btn primary" id="add">+ Adicionar</button>
     </div>
@@ -539,6 +542,16 @@ $("q").oninput=e=>{state.q=e.target.value.toLowerCase();render()};
 $("fdono").onchange=e=>{state.dono=e.target.value;render()};
 function syncDonoFilter(){const d=state.tab==="desejo";const o=$("fdono").options;o[0].text=d?"Para todos":"Todos";o[3].text=d?"Os dois":"Compartilhado";$("fdono").setAttribute("aria-label",d?"Filtrar por para quem":"Filtrar por dono")}
 $("fcat").onchange=e=>{state.cat=e.target.value;render()};
+// Ordem da lista (lembrada neste aparelho)
+try{state.sort=localStorage.getItem("acervo.sort")||"recentes"}catch(e){state.sort="recentes"}
+$("fsort").value=state.sort;
+$("fsort").onchange=e=>{state.sort=e.target.value;try{localStorage.setItem("acervo.sort",state.sort)}catch(_){}render()};
+const coll=new Intl.Collator("pt-BR",{sensitivity:"base",numeric:true});
+function sorter(){
+  if(state.sort==="nome")return (a,b)=>coll.compare(a.nome||"",b.nome||"")||coll.compare(a.marca||"",b.marca||"");
+  if(state.sort==="marca")return (a,b)=>coll.compare(a.marca||"",b.marca||"")||coll.compare(a.nome||"",b.nome||"");
+  return (a,b)=>(b.criadoEm||0)-(a.criadoEm||0);
+}
 $("add").onclick=()=>openForm(null,{tipo:state.tab});
 
 function matches(p){
@@ -558,7 +571,7 @@ function render(){
   const paraQ={ele:"para Luiz Filipe",ela:"para Heloíse",casal:"para os dois"}[state.dono]||"";
   $("stats").innerHTML=`<div><b>${fT.length}</b>frascos${quem?" "+quem:""}</div><div><b>${marcas}</b>marcas</div><div><b>${fD.length}</b>desejos${paraQ?" "+paraQ:""}</div>`;
   const list=(state.tab==="desejo"?desejo:tenho).filter(matches)
-    .sort((a,b)=>(b.criadoEm||0)-(a.criadoEm||0));
+    .sort(sorter());
   const grid=$("grid"), empty=$("empty");
   grid.innerHTML=list.map(card).join("");
   grid.querySelectorAll(".card").forEach(c=>c.onclick=()=>openDetail(c.dataset.id));
@@ -587,7 +600,7 @@ function card(p){
 }
 
 /* ---------- fotos ---------- */
-const BORJI_IMG_PADRAO="https://assets-borjieco.fluxocore.com/v1/pro_2020_e.jpg";
+const BORJI_IMG_PADRAO="borji-frasco.jpg";
 let appCfg={};
 const isBorji=p=>/borji/.test(plain(p.marca||""));
 function fragImg(u){const m=String(u||"").match(/fragrantica\.[^/]+\/perfume\/[^?#]*?-(\d+)\.html/i);return m?`https://fimgs.net/mdimg/perfume/375x500.${m[1]}.jpg`:""}
