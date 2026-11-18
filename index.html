@@ -68,6 +68,8 @@ main{padding-block:22px 60px}
 .card .cb{display:flex;flex-direction:column;gap:9px;min-width:0;height:100%}
 .card:hover{transform:translateY(-2px);border-color:var(--muted)}
 .card .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card .phcol{display:flex;flex-direction:column;align-items:center;gap:5px}
+.card .flag{font-size:15px;line-height:1}
 .card .ph{width:76px;height:100px;border-radius:10px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
 .card .ph img{width:100%;height:100%;object-fit:contain;padding:4px;box-sizing:border-box}
 .card .ph svg{height:72px;width:auto}
@@ -224,7 +226,7 @@ input,select,textarea{font-size:16px}
         <option value="">Categorias</option>
       </select>
       <select class="f" id="fsort" aria-label="Ordenar">
-        <option value="recentes">Mais recentes</option><option value="nome">Perfume A–Z</option><option value="marca">Marca A–Z</option>
+        <option value="recentes">Recentes</option><option value="nome">Perfume A–Z</option><option value="marca">Marca A–Z</option>
       </select>
       <button class="btn primary" id="add" aria-label="Adicionar perfume">+<span class="lbl"> Adicionar</span></button>
     </div>
@@ -391,7 +393,7 @@ const GEMINI_MODEL = "gemini-3.8-flash";
 const USE_GOOGLE_SEARCH = false;
 // 4) Modelo rápido para o preenchimento inicial (sem abrir páginas).
 const GEMINI_FAST_MODEL = "gemini-3.5-flash-lite";
-const APP_VERSION = "v18";
+const APP_VERSION = "v20";
 const FB = "https://www.gstatic.com/firebasejs/13.1.0/";
 
 /* ---------- nuvem (Firebase) ---------- */
@@ -615,7 +617,7 @@ function card(p){
   const strip=acc.length?`<div class="strip" aria-hidden="true">${acc.map(a=>`<span style="width:${(Number(a.pct)||0)/tot*100}%;background:${accColor(a.nome)}"></span>`).join("")}</div>`:"";
   const notes=acc.slice(0,3).map(a=>`<span class="chip">${esc(a.nome)}</span>`).join("");
   return `<button class="card" data-id="${esc(p.id)}">
-    <div class="ph">${photoOf(p)?`<img src="${esc(photoOf(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(bottleEl('${esc(accColor((p.acordes||[])[0]?.nome||""))}'))">`:bottleSvg(p)}</div>
+    <div class="phcol"><div class="ph">${photoOf(p)?`<img src="${esc(photoOf(p))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(bottleEl('${esc(accColor((p.acordes||[])[0]?.nome||""))}'))">`:bottleSvg(p)}</div>${paisOf(p)?`<span class="flag" title="${esc(paisNome(p))}">${flagsOf(p)}</span>`:""}</div>
     <div class="cb"><div class="meta"><span>${esc(p.concentracao||"")}</span><span>${p.tamanhoMl?esc(p.tamanhoMl)+" ml":""}</span></div>
     <h3>${esc(p.nome||"Sem nome")}</h3><div class="marca">${esc(p.marca||"")}</div>
     ${strip}
@@ -624,6 +626,28 @@ function card(p){
     <div class="foot"><span>${p.inspiradoEm?"↳ "+esc(p.inspiradoEm):""}</span><span>${(p.contratipos||[]).length?esc(p.contratipos.length)+((p.contratipos.length>1)?" contratipos":" contratipo"):""}</span></div></div>
   </button>`;
 }
+
+/* ---------- país da marca ---------- */
+const PAISES={BR:"Brasil",FR:"França",IT:"Itália",US:"Estados Unidos",GB:"Reino Unido",ES:"Espanha",DE:"Alemanha",NL:"Holanda",SE:"Suécia",CH:"Suíça",AE:"Emirados Árabes",SA:"Arábia Saudita",OM:"Omã",KW:"Kuwait",QA:"Catar",TR:"Turquia",IN:"Índia",JP:"Japão",BE:"Bélgica",PL:"Polônia",RU:"Rússia",CA:"Canadá",AR:"Argentina",MX:"México",PT:"Portugal",AU:"Austrália",KR:"Coreia do Sul",LB:"Líbano",JO:"Jordânia",EG:"Egito"};
+const MARCA_PAIS=[[/borji|natura|boticario|eudora|granado|wepink|jequiti|avon brasil|mahogany|phebo|ana hickmann|fator 5|thera|porto aroma|la rive|adel|nuancielo|in the box|lab 8|maison viegas|azza|ciclo/,"BR"],
+ [/chanel|dior|saint laurent|ysl|guerlain|hermes|lancome|givenchy|cartier|louis vuitton|jean paul gaultier|parfums de marly|kurkdjian|initio|montale|mancera|kilian|azzaro|kenzo|chloe|lalique|mugler|nina ricci|cacharel|boucheron|rochas|diptyque|frederic malle|serge lutens|l.artisan|atelier cologne|maison margiela|guy laroche|maison crivelli|stephane humbert lucas|lattafa paris/,"FR"],
+ [/prada|gucci|armani|versace|dolce|valentino|bvlgari|bulgari|xerjoff|ferragamo|diesel|moschino|acqua di parma|tiziana terenzi|sospiro|giardini di toscana|casamorati|nasomatto|orto parisi|missoni|trussardi|roberto cavalli|fendi/,"IT"],
+ [/tom ford|calvin klein|ralph lauren|abercrombie|le labo|estee lauder|marc jacobs|michael kors|tommy hilfiger|donna karan|dkny|coach|victoria.?s secret|bond no|kayali|ariana grande|vera wang|juicy couture|hollister|clinique|elizabeth arden/,"US"],
+ [/penhaligon|jo malone|burberry|clive christian|floris|roja|ormonde jayne|boadicea|vilhelm/,"GB"],
+ [/zara|loewe|adolfo dominguez|massimo dutti/,"ES"],
+ [/lattafa|armaf|afnan|al haramain|rasasi|ajmal|maison alhambra|paris corner|swiss arabian|french avenue|fragrance world|rayhaan|ard al zaafaran|zimaya|khadlaj|emper|riiffs|nusuk/,"AE"],
+ [/creed/,"FR+GB"],[/carolina herrera/,"US+ES"],[/paco rabanne|^rabanne/,"FR+ES"],[/mont ?blanc/,"DE+FR"],
+ [/amouage/,"OM"],[/nishane|marie jeanne/,"TR"],[/byredo/,"SE"],[/viktor.?rolf/,"NL"],[/hugo boss|boss|joop|davidoff|escada|jil sander|4711|mercedes/,"DE"],
+ [/arabian oud|abdul samad|al rehab/,"SA"]];
+function paisAuto(p){const m=plain(p.marca||"");if(!m)return "";for(const [re,c] of MARCA_PAIS)if(re.test(m))return c;return ""}
+function paisList(p){
+  if(p.pais&&PAISES[p.pais])return [p.pais,...(p.pais2&&PAISES[p.pais2]&&p.pais2!==p.pais?[p.pais2]:[])];
+  return paisAuto(p).split("+").filter(Boolean);
+}
+function paisOf(p){return paisList(p).join("+")}
+const flagsOf=p=>paisList(p).map(flagOf).join(" ");
+const paisNome=p=>paisList(p).map(c=>PAISES[c]||c).join(" / ");
+function flagOf(c){c=String(c||"").toUpperCase();return /^[A-Z]{2}$/.test(c)?String.fromCodePoint(...[...c].map(x=>0x1F1E6+x.charCodeAt(0)-65)):""}
 
 /* ---------- fotos ---------- */
 const BORJI_IMG_PADRAO="borji-frasco.jpg";
@@ -809,7 +833,7 @@ function openDetail(id,keepScroll){
   const hasPyr=(py.topo||[]).length+(py.coracao||[]).length+(py.fundo||[]).length>0;
   const dupes=p.contratipos||[];
   const kv=[["Categoria",p.categoria],["Concentração",p.concentracao],["Tamanho",p.tamanhoMl&&p.tamanhoMl+" ml"],[p.tipo==="desejo"?"Para quem":"Dono",(p.tipo==="desejo"?{ele:"Luiz Filipe",ela:"Heloíse",casal:"Os dois"}:DONO)[p.dono]],
-    ["Família",p.familia],["Ano",p.ano],["Perfumista",p.perfumista],
+    ["Família",p.familia],["País",paisOf(p)&&(flagsOf(p)+" "+paisNome(p))],["Ano",p.ano],["Perfumista",p.perfumista],
     ["Nota de Luiz Filipe",p.notaEle&&p.notaEle+"/10"],["Nota de Heloíse",p.notaEla&&p.notaEla+"/10"]].filter(x=>x[1]);
   layer(`<div id="detail-root">
     <div class="sheet-head"><div><div class="eyebrow">${p.tipo==="desejo"?"Lista de desejos":"Na coleção"}</div>
@@ -947,6 +971,8 @@ function openForm(id,preset){
         <div class="row"><label>Categoria<select id="f-cat"><option value=""></option>${CATS.map(c=>`<option ${draft.categoria===c?"selected":""}>${c}</option>`).join("")}</select></label>
           <label>Concentração<select id="f-conc">${CONC.map(c=>`<option ${draft.concentracao===c?"selected":""}>${c}</option>`).join("")}</select></label></div>
         <div class="row"><label>Inspirado em (se for contratipo)<input id="f-insp" value="${esc(draft.inspiradoEm||"")}"></label><label>Família olfativa<input id="f-fam" value="${esc(draft.familia||"")}"></label></div>
+        <div class="row"><label>País da marca<select id="f-pais"><option value="">Automático${paisAuto(draft)?" ("+flagsOf({marca:draft.marca})+" "+paisNome({marca:draft.marca})+")":""}</option>${Object.entries(PAISES).map(([c,n])=>`<option value="${c}" ${draft.pais===c?"selected":""}>${flagOf(c)} ${n}</option>`).join("")}</select></label>
+          <label>2º país (opcional)<select id="f-pais2"><option value="">Nenhum</option>${Object.entries(PAISES).map(([c,n])=>`<option value="${c}" ${draft.pais2===c?"selected":""}>${flagOf(c)} ${n}</option>`).join("")}</select></label></div>
         <div class="row"><label>Tamanho (ml)<input id="f-ml" type="number" inputmode="numeric" min="0" value="${esc(draft.tamanhoMl||"")}"></label>
           <label id="l-preco" ${draft.tipo==="desejo"?"":"hidden"}>Preço-alvo (R$)<input id="f-preco" type="number" inputmode="decimal" min="0" value="${esc(draft.preco||"")}"></label></div>
         <div class="row"><label>Nota de Luiz Filipe (0–10)<input id="f-ne" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEle||"")}"></label><label>Nota de Heloíse (0–10)<input id="f-na" type="number" min="0" max="10" step="0.5" value="${esc(draft.notaEla||"")}"></label></div>
@@ -987,7 +1013,7 @@ function openForm(id,preset){
 function collect(){
   const v=i=>$(i).value.trim();
   Object.assign(draft,{fragranticaUrl:v("f-frag"),scentidoUrl:v("f-scen"),borjiUrl:v("f-borji"),nome:v("f-nome"),marca:v("f-marca"),categoria:v("f-cat"),concentracao:v("f-conc"),
-    inspiradoEm:v("f-insp"),familia:v("f-fam"),tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com"),fotoUrl:/^https?:\/\//.test(v("f-fotourl"))?v("f-fotourl"):""});
+    inspiradoEm:v("f-insp"),familia:v("f-fam"),pais:v("f-pais"),pais2:v("f-pais")?v("f-pais2"):"",tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com"),fotoUrl:/^https?:\/\//.test(v("f-fotourl"))?v("f-fotourl"):""});
 }
 function drawPreview(){
   const el=$("preview"); if(!el)return;
@@ -1014,7 +1040,7 @@ async function fetchBorjiLink(){
   // 1) Dados do catálogo, na hora (nome, inspiração, preço), sem gastar o Gemini.
   const item=info.id&&borji?.itens?.find(x=>borjiId(x.u)===info.id);
   const set=(id,v,force)=>{const el=$(id);if(el&&v&&(force||!el.value))el.value=v};
-  set("f-marca","Borji & Co",true); set("f-cat","Contratipo",true);
+  set("f-marca","Borji & Co",true); if(!$("f-pais").value)$("f-pais").value="BR"; set("f-cat","Contratipo",true);
   if(item){
     set("f-nome",tcase(item.n)); set("f-insp",item.i);
     if(draft.tipo==="desejo"&&item.p>0)draft.precos={data:borji.atualizadoEm||Date.now(),fonte:"Borji & Co",ofertas:[{loja:"Borji & Co",preco:item.p,titulo:"",url}]};
@@ -1055,7 +1081,8 @@ function fragPrompt(url,info,web){
 ${web?"Leia essa página do Fragrantica. Se não conseguir abrir, use o que você sabe sobre esse perfume.":"Responda com o que você sabe sobre esse perfume, reproduzindo da forma mais fiel possível os acordes e a pirâmide da ficha dele no Fragrantica. Se não conhecer o perfume com segurança, devolva listas vazias e \"conhecido\": false."}
 Acordes principais na ordem de intensidade (o primeiro é o mais forte), cada um com uma porcentagem de 0 a 100 proporcional à barra, com 100 para o primeiro. Também a pirâmide olfativa (saída, coração, fundo), o ano, o perfumista, a concentração e a família olfativa.
 Responda SOMENTE com um JSON, sem nenhum texto antes ou depois, neste formato:
-{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]},"conhecido":true}
+{"nome":"","marca":"","pais":"FR","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]},"conhecido":true}
+"pais": código ISO de 2 letras do país da marca, como aparece no Fragrantica (ex.: FR, IT, US, BR, AE, GB); vazio se não souber.
 ${ACC_RULES}`;
 }
 function applyFrag(j,info,fonte){
@@ -1067,7 +1094,8 @@ function applyFrag(j,info,fonte){
   const fill=(id,v)=>{const el=$(id);if(el&&v&&!el.value)el.value=v};
   fill("f-nome",j.nome||info.nome);fill("f-marca",j.marca||info.marca);fill("f-fam",j.familia);
   const fc=$("f-conc"); if(fc&&j.concentracao&&!fc.value&&CONC.includes(j.concentracao))fc.value=j.concentracao;
-  if(j.ano)draft.ano=String(j.ano); if(j.perfumista)draft.perfumista=String(j.perfumista);
+  if(j.ano)draft.ano=String(j.ano);
+  if(/^[A-Za-z]{2}$/.test(j.pais||"")&&!$("f-pais").value){$("f-pais").value=j.pais.toUpperCase();draft.pais=j.pais.toUpperCase()} if(j.perfumista)draft.perfumista=String(j.perfumista);
   draft.fonteDados=fonte;
   drawPreview(); return true;
 }
@@ -1082,7 +1110,8 @@ async function readPastedFrag(){
   const prompt=`Abaixo está o texto copiado da página de um perfume no Fragrantica. Extraia os dados usando SOMENTE esse texto.
 Os acordes principais aparecem como uma lista em ordem de intensidade; dê 100 ao primeiro e porcentagens decrescentes aos demais. A pirâmide aparece como notas de saída/topo, coração e fundo.
 Responda SOMENTE com um JSON, sem texto antes ou depois:
-{"nome":"","marca":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]}}
+{"nome":"","marca":"","pais":"","ano":"","perfumista":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]}}
+"pais": código ISO de 2 letras do país da marca, se aparecer no texto.
 ${ACC_RULES}
 
 --- TEXTO ---
