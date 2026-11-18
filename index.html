@@ -391,6 +391,7 @@ const GEMINI_MODEL = "gemini-3.8-flash";
 const USE_GOOGLE_SEARCH = false;
 // 4) Modelo rápido para o preenchimento inicial (sem abrir páginas).
 const GEMINI_FAST_MODEL = "gemini-3.5-flash-lite";
+const APP_VERSION = "v18";
 const FB = "https://www.gstatic.com/firebasejs/13.1.0/";
 
 /* ---------- nuvem (Firebase) ---------- */
@@ -928,10 +929,10 @@ function openForm(id,preset){
         </div>
         <div class="status" id="fstatus">Cole um link e toque em buscar: o Gemini preenche os campos para vocês conferirem antes de salvar.</div>
         <div id="gsrc"></div>
-        <button type="button" class="btn ghost" id="b-showpaste" style="align-self:flex-start;padding:4px 0;font-size:13px">Não encontrou? Colar o texto da página do Fragrantica</button>
+        <button type="button" class="btn ghost" id="b-showpaste" style="align-self:flex-start;padding:4px 0;font-size:13px">Não encontrou? Colar o texto da página (Fragrantica ou Scentido)</button>
         <div id="pastebox" class="fieldset" hidden style="margin-top:0">
-          <label>Texto da página<textarea id="f-paste" placeholder="Abra a página do perfume no Fragrantica, selecione e copie o texto (do nome do perfume até o fim da pirâmide) e cole aqui."></textarea></label>
-          <div class="links"><button type="button" class="btn" id="b-pastebtn">Colar</button><button type="button" class="btn primary" id="b-readpaste">Ler texto colado</button></div>
+          <label>Texto da página<textarea id="f-paste" placeholder="Abra a página do perfume no Fragrantica ou no Scentido, selecione e copie o texto e cole aqui."></textarea></label>
+          <div class="links"><button type="button" class="btn" id="b-pastebtn">Colar</button><button type="button" class="btn primary" id="b-readpaste">Ler acordes</button><button type="button" class="btn primary" id="b-readpastescen">Ler contratipos</button></div>
         </div>
       </div>
       <div class="fieldset"><div class="photofield">
@@ -973,6 +974,7 @@ function openForm(id,preset){
   $("b-showpaste").onclick=()=>{$("pastebox").hidden=false;$("b-showpaste").hidden=true;$("f-paste").focus()};
   $("b-pastebtn").onclick=async()=>{try{const t=await navigator.clipboard.readText();if(t)$("f-paste").value=t}catch(e){$("f-paste").focus();toast("Toque e segure no campo e escolha Colar.")}};
   $("b-readpaste").onclick=()=>readPastedFrag();
+  $("b-readpastescen").onclick=()=>readPastedScen();
   $("pf").onsubmit=async e=>{
     e.preventDefault(); collect(); if(draft.tipo!=="desejo")draft.preco="";
     if(!draft.nome){setStatus("Informe o nome do perfume.","err");$("f-nome").focus();return}
@@ -1145,6 +1147,24 @@ function applyScen(j,info){
   drawPreview(); return list.length;
 }
 let scenRun=0;
+const SCEN_FMT=`Responda em linhas de texto simples, sem JSON, sem cercas de código e sem nenhum outro texto:
+PAGINA | nome do perfume da página | marca dele | perfume original em que é inspirado no formato "Nome (Marca)", ou - se ele mesmo for o original
+Depois, uma linha por contratipo, até 10, na ordem de maior semelhança:
+nome do contratipo | marca | semelhança em % (só o número, ou -) | preço em reais (só o número, ou -) | link da ficha dele no Scentido (ou -)`;
+function parseScenLines(text){
+  const out={nome:"",marca:"",inspiradoEm:"",contratipos:[]};
+  const num=v=>{v=String(v||"").replace(/[^\d,.]/g,"");if(!v)return "";if(v.includes(","))v=v.replace(/\./g,"").replace(",",".");const n=Number(v);return isNaN(n)?"":n};
+  for(let line of String(text||"").split("\n")){
+    line=line.replace(/^[-*\d.)\s]+(?=[A-Za-zÀ-ú])/,"").trim();
+    const c=line.split("|").map(x=>x.trim()); if(c.length<2)continue;
+    if(/^PAGINA$/i.test(c[0])){out.nome=c[1]&&c[1]!=="-"?c[1]:"";out.marca=c[2]&&c[2]!=="-"?c[2]:"";out.inspiradoEm=c[3]&&c[3]!=="-"?c[3]:"";continue}
+    if(!c[0]||c[0]==="-"||/^nome/i.test(c[0]))continue;
+    const sem=num(c[2]), pr=num(c[3]), url=(String(c[4]||"").match(/https?:\/\/\S+/)||[""])[0];
+    out.contratipos.push({nome:c[0],marca:c[1]&&c[1]!=="-"?c[1]:"",semelhanca:sem!==""&&sem<=100?Math.round(sem):"",preco:pr,url});
+  }
+  out.contratipos=out.contratipos.slice(0,10);
+  return out;
+}
 async function fetchScentido(){
   collect(); const url=draft.scentidoUrl; const info=parseScen(url);
   if(!info){setStatus("Esse não parece um link de perfume do Scentido (…/perfumes-referencia/… ou …/perfumes-contratipos/…).","err");return}
@@ -1157,22 +1177,47 @@ async function fetchScentido(){
     const n=applyScen(r.json,info);
     if(n){setStatus(`<span class="spin"></span>${n} sugestões prévias. Lendo a página do Scentido para trazer % de semelhança e preços…`,"ok");btn.disabled=false}
   }).catch(()=>{});
-  // 2) Leitura da página real, que substitui as sugestões prévias.
+  // 2) Leitura da página real em formato compacto (mais rápido de escrever).
+  const prompt=`Abra esta página do Scentido e leia a lista de contratipos: ${url}
+${SCEN_FMT}`;
+  const tryRead=async kind=>{const r=await askGemini(prompt,kind,60000);return {r,j:parseScenLines(r.text)}};
   try{
-    const r=await askGemini(scenPrompt(url,info,true),"webfast",60000);
+    let {r,j}=await tryRead("webfast");
+    // Se o modelo leve não abriu a página ou não achou a lista, tenta o modelo principal.
+    if(!r.urlOk||!j.contratipos.length){if(alive())setStatus(`<span class="spin"></span>Lendo a página com mais atenção…`,(draft.contratipos||[]).length?"ok":"");try{({r,j}=await tryRead("web"))}catch(e){}}
     webDone=true;
     if(!alive())return;
-    renderGrounding($("gsrc"),r.grounding);
-    const n=applyScen(r.json,info);
+    const n=j.contratipos.length&&(r.urlOk||USE_GOOGLE_SEARCH)?applyScen(j,info):0;
     if(n)setStatus(`${n} contratipos lidos do Scentido. Salvem para guardar.`,"ok");
-    else if((draft.contratipos||[]).length)setStatus("Não encontrei contratipos na página; ficaram as sugestões prévias (sem preços).","ok");
-    else setStatus("O Gemini não encontrou contratipos para esse perfume.","err");
+    else if((draft.contratipos||[]).length){setStatus("Não consegui ler a lista no Scentido; ficaram as sugestões prévias (sem preços). Se quiserem, colem o texto da página logo abaixo.","ok");showPaste()}
+    else{setStatus("Não consegui ler a lista no Scentido. Colem o texto da página logo abaixo.","err");showPaste()}
   }catch(e){
     webDone=true; await fast;
     if(!alive())return;
     if((draft.contratipos||[]).length)setStatus("Não consegui abrir a página do Scentido; ficaram as sugestões prévias (sem preços nem % de semelhança).","ok");
     else setStatus(aiErr(e),"err");
+    showPaste();
   }finally{if(alive())btn.disabled=false}
+}
+async function readPastedScen(){
+  collect();
+  const txt=($("f-paste").value||"").trim();
+  if(txt.length<80){setStatus("Cole o texto da página do Scentido no campo acima.","err");return}
+  const info=parseScen(draft.scentidoUrl)||{tipo:"original",slug:""};
+  const btn=$("b-readpastescen"); btn.disabled=true;
+  setStatus(`<span class="spin"></span>Lendo o texto colado…`);
+  try{
+    const r=await askGemini(`Abaixo está o texto copiado de uma página do Scentido com uma lista de contratipos. Use SOMENTE esse texto.
+${SCEN_FMT}
+
+--- TEXTO ---
+${txt.slice(0,25000)}
+--- FIM ---`,"fast",40000);
+    const n=applyScen(parseScenLines(r.text),info);
+    if(n){setStatus(`${n} contratipos lidos do texto colado. Salvem para guardar.`,"ok");$("f-paste").value=""}
+    else setStatus("Não encontrei contratipos nesse texto. Confiram se copiaram a lista da página.","err");
+  }catch(e){setStatus(aiErr(e),"err")}
+  finally{btn.disabled=false}
 }
 
 async function searchPrices(id){
@@ -1217,7 +1262,8 @@ function openMenu(){
           <div class="links"><button class="btn" type="submit">Salvar imagem</button></div></div></div>
         <div class="sub" style="font-size:12px">No site da Borji, toque e segure a foto de um frasco e escolha "Copiar endereço da imagem".</div>
       </form></section>
-    <div class="actions"><button class="btn danger" onclick="logout()">Sair da conta</button></div>`);
+    <div class="actions"><button class="btn danger" onclick="logout()">Sair da conta</button></div>
+    <p class="sub" style="font-size:12px;margin-top:18px">Versão do app: ${APP_VERSION}</p>`);
   $("imp").onchange=e=>{const f=e.target.files[0];if(f)importBackup(f)};
   $("bimg-url").oninput=e=>{const pv=$("bimg-prev");if(pv)pv.src=e.target.value.trim()};
   $("bimg").onsubmit=e=>{e.preventDefault();const u=$("bimg-url").value.trim();
