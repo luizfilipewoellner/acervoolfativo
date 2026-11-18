@@ -142,6 +142,19 @@ form textarea{min-height:70px;resize:vertical}
 .addlinks{gap:8px}.addlinks:not(:has(.addlink:not([hidden]))){display:none}
 #b-showpaste{white-space:normal;text-align:left}
 .btn.addlink{padding:6px 14px;font-size:13px;border-style:dashed}
+.sughead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sughead h2{font-family:var(--display);font-style:italic;font-weight:400;font-size:28px;margin:0;line-height:1.1}
+.sughead p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.scard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:9px}
+.scard .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.scard h3{font-family:var(--display);font-weight:500;font-size:20px;line-height:1.15;margin:0}
+.scard .marca{color:var(--muted);font-size:13px;margin-top:-5px}
+.scard .why{font-size:14px;line-height:1.45}
+.scard .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:4px}
+.scard .acts .btn{padding:6px 12px;font-size:13px}
+a.btn{text-decoration:none;color:var(--ink);display:inline-flex;align-items:center}
+.scard .borjialt{font-size:13px;color:var(--muted)}.scard .borjialt b{color:var(--accent)}
 .fetchrow{display:flex;gap:8px;align-items:flex-end}
 .fetchrow label{flex:1}
 .status{font-size:13px;color:var(--muted);min-height:1.2em}
@@ -170,7 +183,9 @@ form textarea{min-height:70px;resize:vertical}
   .bar .search{flex:1 1 100%;order:2}
   .bar .tabs{order:1}
   .bar select.f{order:3;flex:1 1 0;min-width:0;padding-left:10px;padding-right:6px}
-  .bar #add{order:1;margin-left:auto}
+  .bar #add{order:1;margin-left:auto;padding:8px 14px;font-size:18px;line-height:1}
+  .bar #add .lbl{display:none}
+  .tab{padding:7px 12px}
   .stats{gap:14px}.stats b{font-size:20px}
 }
 .login{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
@@ -199,6 +214,7 @@ input,select,textarea{font-size:16px}
       <div class="tabs" role="tablist">
         <button class="tab" role="tab" id="tab-tenho" aria-selected="true" data-tab="tenho">Coleção<span class="n" id="n-tenho"></span></button>
         <button class="tab" role="tab" id="tab-desejo" aria-selected="false" data-tab="desejo">Desejos<span class="n" id="n-desejo"></span></button>
+        <button class="tab" role="tab" id="tab-sug" aria-selected="false" data-tab="sug">Sugestões</button>
       </div>
       <input class="search" id="q" type="search" placeholder="Buscar nome, marca, nota ou acorde">
       <select class="f" id="fdono" aria-label="Filtrar por dono">
@@ -210,7 +226,7 @@ input,select,textarea{font-size:16px}
       <select class="f" id="fsort" aria-label="Ordenar">
         <option value="recentes">Mais recentes</option><option value="nome">Perfume A–Z</option><option value="marca">Marca A–Z</option>
       </select>
-      <button class="btn primary" id="add">+ Adicionar</button>
+      <button class="btn primary" id="add" aria-label="Adicionar perfume">+<span class="lbl"> Adicionar</span></button>
     </div>
   </div>
 </header>
@@ -218,6 +234,7 @@ input,select,textarea{font-size:16px}
 <main class="wrap">
   <div id="notice" class="notice" hidden></div>
   <div id="grid" class="grid"></div>
+  <section id="sug" hidden></section>
   <div id="empty" class="empty" hidden></div>
 </main>
 
@@ -416,6 +433,7 @@ function startData(){
     showNotice(err.code==="permission-denied"?"Este e-mail ainda não tem acesso à coleção. Inclua-o nas regras do Firestore (veja o LEIA-ME).":"Não foi possível acessar a coleção agora.");
     render();
   }));
+  unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","sugestoes"),sn=>{sugDoc=sn.exists()?sn.data():{};if(state.tab==="sug")render()},()=>{}));
   unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","config"),sn=>{appCfg=sn.exists()?sn.data():{};render();refreshOpenDetail()},()=>{}));
   unsubs.push(fb.onSnapshot(fb.doc(fb.db,"lojas","borji"),sn=>{
     const d=sn.exists()?sn.data():null;
@@ -473,7 +491,8 @@ async function gemini(kind){
   const m=aiMod, ai=m.getAI(fb.fapp,{backend:new m.GoogleAIBackend()});
   const TL=m.ThinkingLevel||{};
   let cfg;
-  if(kind==="fast")cfg={model:GEMINI_FAST_MODEL,generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
+  if(kind==="think")cfg={model:GEMINI_MODEL,generationConfig:{thinkingConfig:{thinkingLevel:TL.LOW||"LOW"}}};
+  else if(kind==="fast")cfg={model:GEMINI_FAST_MODEL,generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
   else if(kind==="webfast")cfg={model:GEMINI_FAST_MODEL,tools:[{urlContext:{}}],generationConfig:{thinkingConfig:{thinkingLevel:TL.MINIMAL||"MINIMAL"}}};
   else{const tools=[{urlContext:{}}];if(USE_GOOGLE_SEARCH)tools.push({googleSearch:{}});cfg={model:GEMINI_MODEL,tools,generationConfig:{thinkingConfig:{thinkingLevel:TL.LOW||"LOW"}}}}
   aiModels[kind]={m,ai,cfg,model:m.getGenerativeModel(ai,cfg)};
@@ -543,7 +562,7 @@ function groundingFromSaved(pr){return pr?{searchEntryPoint:pr.sugestoes?{render
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;syncDonoFilter();document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t===b));render()});
 $("q").oninput=e=>{state.q=e.target.value.toLowerCase();render()};
 $("fdono").onchange=e=>{state.dono=e.target.value;render()};
-function syncDonoFilter(){const d=state.tab==="desejo";const o=$("fdono").options;o[0].text=d?"Para todos":"Todos";o[3].text=d?"Os dois":"Compartilhado";$("fdono").setAttribute("aria-label",d?"Filtrar por para quem":"Filtrar por dono")}
+function syncDonoFilter(){const d=state.tab==="desejo",sg=state.tab==="sug";const o=$("fdono").options;o[0].text=sg?"Os dois":d?"Para todos":"Todos";o[3].text=d?"Os dois":"Compartilhado";o[3].hidden=sg;if(sg&&state.dono==="casal"){state.dono="";$("fdono").value=""}$("fdono").setAttribute("aria-label",d?"Filtrar por para quem":"Filtrar por dono")}
 $("fcat").onchange=e=>{state.cat=e.target.value;render()};
 // Ordem da lista (lembrada neste aparelho)
 try{state.sort=localStorage.getItem("acervo.sort")||"recentes"}catch(e){state.sort="recentes"}
@@ -555,7 +574,7 @@ function sorter(){
   if(state.sort==="marca")return (a,b)=>coll.compare(a.marca||"",b.marca||"")||coll.compare(a.nome||"",b.nome||"");
   return (a,b)=>(b.criadoEm||0)-(a.criadoEm||0);
 }
-$("add").onclick=()=>openForm(null,{tipo:state.tab});
+$("add").onclick=()=>openForm(null,{tipo:state.tab==="desejo"?"desejo":"tenho"});
 
 function matches(p){
   if(state.dono&&p.dono!==state.dono)return false;
@@ -573,6 +592,9 @@ function render(){
   const quem={ele:"de Luiz Filipe",ela:"de Heloíse",casal:"compartilhados"}[state.dono]||"";
   const paraQ={ele:"para Luiz Filipe",ela:"para Heloíse",casal:"para os dois"}[state.dono]||"";
   $("stats").innerHTML=`<div><b>${fT.length}</b>frascos${quem?" "+quem:""}</div><div><b>${marcas}</b>marcas</div><div><b>${fD.length}</b>desejos${paraQ?" "+paraQ:""}</div>`;
+  document.querySelectorAll(".bar select.f,.bar .search").forEach(el=>el.hidden=state.tab==="sug"&&el.id!=="fdono");
+  if(state.tab==="sug"){renderSug();return}
+  $("sug").hidden=true;
   const list=(state.tab==="desejo"?desejo:tenho).filter(matches)
     .sort(sorter());
   const grid=$("grid"), empty=$("empty");
@@ -636,6 +658,115 @@ async function shrinkPhoto(file){
     while(out.length>120000&&q>0.4){q-=0.1;out=cv.toDataURL("image/jpeg",q)}
     return out;
   }finally{URL.revokeObjectURL(url)}
+}
+
+/* ---------- sugestões ---------- */
+let sugDoc={}, sugBusy=false;
+function sugPara(){return state.dono||"casal"}
+function renderSug(){
+  $("grid").innerHTML=""; $("empty").hidden=true;
+  const el=$("sug"); el.hidden=false;
+  const para=sugPara(), alvo={ele:"Luiz Filipe",ela:"Heloíse",casal:"vocês dois"}[para];
+  const d=(sugDoc.porPara||{})[para]||{}, itens=d.itens||[];
+  const quando=d.data?new Date(d.data).toLocaleString("pt-BR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+  const temBase=state.items.length>0;
+  el.innerHTML=`<div class="sughead"><div><h2>Sugestões para ${esc(alvo)}</h2>
+      <p>${temBase?`Com base nos perfumes ${para==="casal"?"da coleção e dos desejos":"de "+esc(alvo)+" e nos desejos"}, com as notas que vocês deram.${quando?" Atualizado em "+esc(quando)+".":""}`:"Adicionem alguns perfumes à coleção ou aos desejos para o app entender o gosto de vocês."}</p>
+      <div class="status" id="sugstatus"></div></div>
+    <button class="btn primary" id="b-sug" ${!temBase||sugBusy?"disabled":""}>${sugBusy?'<span class="spin"></span>Pensando…':itens.length?"Atualizar sugestões":"Gerar sugestões"}</button></div>
+    ${itens.length?`<div class="sgrid">${itens.map((x,i)=>sugCard(x,i)).join("")}</div>`:temBase?`<div class="notice">Toquem em "Gerar sugestões" para receber ideias de perfumes. Use o filtro acima para ver sugestões só para Luiz Filipe ou só para Heloíse.</div>`:""}`;
+  const b=$("b-sug"); if(b)b.onclick=()=>gerarSugestoes();
+}
+function sugCard(x,i){
+  const alt=borjiMatches({nome:x.nome,marca:x.marca})[0];
+  const q=encodeURIComponent(`${x.nome} ${x.marca} fragrantica`);
+  return `<div class="scard">
+    <div class="meta"><span>${esc(x.categoria||"")}</span><span>${esc({ele:"Para Luiz Filipe",ela:"Para Heloíse",casal:"Para os dois"}[x.para]||"")}</span></div>
+    <h3>${esc(x.nome)}</h3><div class="marca">${esc(x.marca||"")}</div>
+    ${(x.acordes||[]).length?`<div class="chips">${x.acordes.slice(0,4).map(a=>`<span class="chip" style="border-left:6px solid ${accColor(a)}">${esc(a)}</span>`).join("")}</div>`:""}
+    <div class="why">${esc(x.motivo||"")}</div>
+    ${alt?`<div class="borjialt">Na Borji: <b>${esc(tcase(alt.n))}</b>${alt.p>0?" · "+esc(money(alt.p)):""}</div>`:""}
+    <div class="acts"><button class="btn" onclick="sugToWish(${i})">+ Desejos</button>
+      <a class="btn ghost" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">Ver ficha ↗</a>
+      <button class="btn ghost" onclick="sugReject(${i})">Não curti</button></div>
+  </div>`;
+}
+function perfilTxt(para){
+  const pick=p=>para==="casal"||p.dono===para||p.dono==="casal";
+  const linha=p=>{
+    const notas=[p.notaEle&&`nota de Luiz Filipe ${p.notaEle}/10`,p.notaEla&&`nota de Heloíse ${p.notaEla}/10`].filter(Boolean).join(", ");
+    const acc=(p.acordes||[]).slice(0,4).map(a=>a.nome).join(", ");
+    return `- ${p.nome} (${p.marca||"?"})${p.categoria?" ["+p.categoria+"]":""}${p.inspiradoEm?" inspirado em "+p.inspiradoEm:""}${acc?" · acordes: "+acc:""}${notas?" · "+notas:""}${p.comentarios?" · comentário: "+String(p.comentarios).slice(0,120):""}`;
+  };
+  const tem=state.items.filter(p=>p.tipo!=="desejo"&&pick(p)).slice(0,60).map(linha).join("\n")||"(nenhum)";
+  const des=state.items.filter(p=>p.tipo==="desejo"&&pick(p)).slice(0,40).map(linha).join("\n")||"(nenhum)";
+  return {tem,des};
+}
+async function gerarSugestoes(){
+  if(sugBusy)return;
+  const para=sugPara(), alvo={ele:"Luiz Filipe (homem)",ela:"Heloíse (mulher)",casal:"um casal (Luiz Filipe e Heloíse), perfumes que agradem aos dois ou que um deles usaria"}[para];
+  const {tem,des}=perfilTxt(para);
+  const prev=((sugDoc.porPara||{})[para]?.itens||[]).map(x=>`${x.nome} (${x.marca})`);
+  const rej=(sugDoc.rejeitados||[]).slice(-60);
+  const prompt=`Você é um consultor de perfumaria que conhece bem o mercado brasileiro: nicho, designers, nacionais (Natura, O Boticário, Eudora etc.), árabes (Lattafa, Armaf, Afnan, Al Haramain etc.) e contratipos.
+Sugira 8 perfumes REAIS e conhecidos para ${alvo}, com base no gosto mostrado abaixo. Perfumes com nota alta pesam mais; nota baixa indica o que evitar.
+
+Perfumes que já têm:
+${tem}
+
+Lista de desejos:
+${des}
+
+Regras:
+- Não sugira nada que já esteja na coleção ou nos desejos.
+- Não repita estas sugestões anteriores: ${prev.join("; ")||"(nenhuma)"}.
+- Não sugira estes, que eles não curtiram: ${rej.join("; ")||"(nenhum)"}.
+- Varie: misture faixas de preço e categorias (pelo menos um nacional ou árabe acessível, pelo menos um nicho), e inclua 1 ou 2 apostas um pouco diferentes do que já têm, explicando a ligação.
+- "motivo": uma ou duas frases em português, citando perfumes da coleção ou dos desejos que justificam a sugestão.
+- "categoria": Nicho, Designer, Nacional, Árabe ou Contratipo. "para": "ele", "ela" ou "casal". "acordes": 3 ou 4 acordes principais em português, minúsculas.
+Responda SOMENTE com um JSON, sem texto antes ou depois:
+{"sugestoes":[{"nome":"","marca":"","categoria":"","para":"casal","acordes":[""],"motivo":""}]}`;
+  sugBusy=true; render();
+  try{
+    let r;
+    try{r=await askGemini(prompt,"think",90000)}
+    catch(e){if(/\b429\b|quota|RESOURCE_EXHAUSTED/i.test(String(e?.message||"")))r=await askGemini(prompt,"fast",60000);else throw e}
+    const have=new Set(state.items.map(p=>plain(p.nome+" "+p.marca)));
+    const itens=(r.json?.sugestoes||[]).filter(x=>x&&x.nome&&!have.has(plain(x.nome+" "+(x.marca||"")))).slice(0,10)
+      .map(x=>({nome:String(x.nome),marca:String(x.marca||""),categoria:String(x.categoria||""),para:["ele","ela","casal"].includes(x.para)?x.para:para,acordes:(x.acordes||[]).map(a=>String(a).toLowerCase()).slice(0,4),motivo:String(x.motivo||"").slice(0,400)}));
+    if(!itens.length)throw new Error("O Gemini não devolveu sugestões. Tente de novo.");
+    const porPara={...(sugDoc.porPara||{}),[para]:{data:Date.now(),itens}};
+    sugDoc={...sugDoc,porPara};
+    fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara},{merge:true}).catch(()=>{});
+    sugBusy=false; render();
+  }catch(e){
+    sugBusy=false; render();
+    const st=$("sugstatus"); if(st){st.className="status err";st.innerHTML=/não devolveu/.test(e?.message||"")?esc(e.message):aiErr(e)}
+  }
+}
+function sugUpdateList(fn){
+  const para=sugPara(), cur=(sugDoc.porPara||{})[para]; if(!cur)return;
+  const itens=fn(cur.itens.slice());
+  const porPara={...sugDoc.porPara,[para]:{...cur,itens}};
+  sugDoc={...sugDoc,porPara}; render();
+  return porPara;
+}
+async function sugToWish(i){
+  const x=((sugDoc.porPara||{})[sugPara()]?.itens||[])[i]; if(!x)return;
+  const ok=await save(null,{tipo:"desejo",nome:x.nome,marca:x.marca,categoria:["Nicho","Designer","Nacional","Árabe","Contratipo"].includes(x.categoria)?x.categoria:"",dono:x.para||"casal",
+    acordes:(x.acordes||[]).map((a,k)=>({nome:a,pct:Math.max(40,100-k*20)})),piramide:{},comentarios:"Sugestão do app: "+x.motivo,fonteDados:"Acordes aproximados da sugestão. Colem o link do Fragrantica para completar."});
+  if(!ok)return;
+  const porPara=sugUpdateList(l=>{l.splice(i,1);return l});
+  if(porPara)fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara},{merge:true}).catch(()=>{});
+  toast(`${x.nome} foi para a lista de desejos`);
+}
+function sugReject(i){
+  const x=((sugDoc.porPara||{})[sugPara()]?.itens||[])[i]; if(!x)return;
+  const rejeitados=[...(sugDoc.rejeitados||[]),`${x.nome} (${x.marca})`].slice(-100);
+  sugDoc={...sugDoc,rejeitados};
+  const porPara=sugUpdateList(l=>{l.splice(i,1);return l});
+  fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara,rejeitados},{merge:true}).catch(()=>{});
+  toast("Anotado. Não vamos sugerir esse de novo.");
 }
 
 /* ---------- ficha ---------- */
