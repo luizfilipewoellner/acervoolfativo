@@ -139,6 +139,9 @@ form input,form select,form textarea{border:1px solid var(--line);background:var
 form textarea{min-height:70px;resize:vertical}
 .fieldset{display:flex;flex-direction:column;gap:10px;margin-top:18px}
 .fetchbox{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.addlinks{gap:8px}.addlinks:not(:has(.addlink:not([hidden]))){display:none}
+#b-showpaste{white-space:normal;text-align:left}
+.btn.addlink{padding:6px 14px;font-size:13px;border-style:dashed}
 .fetchrow{display:flex;gap:8px;align-items:flex-end}
 .fetchrow label{flex:1}
 .status{font-size:13px;color:var(--muted);min-height:1.2em}
@@ -673,7 +676,7 @@ function openDetail(id,keepScroll){
       </div>`).join("")}</div>`:`<div class="notice">Nenhum contratipo listado. Cole o link do Scentido na edição para buscar sugestões.</div>`}</section>
     ${borjiSection(p)}
     ${p.comentarios?`<section class="blk"><h4>Comentários</h4><div class="note">${esc(p.comentarios)}</div></section>`:""}
-    ${(p.fragranticaUrl||p.scentidoUrl)?`<section class="blk"><h4>Links</h4><div class="links">${p.fragranticaUrl?`<a href="${esc(p.fragranticaUrl)}" target="_blank" rel="noopener">Fragrantica ↗</a>`:""}${p.scentidoUrl?`<a href="${esc(p.scentidoUrl)}" target="_blank" rel="noopener">Scentido ↗</a>`:""}</div></section>`:""}
+    ${(p.fragranticaUrl||p.scentidoUrl||p.borjiUrl)?`<section class="blk"><h4>Links</h4><div class="links">${p.borjiUrl?`<a href="${esc(p.borjiUrl)}" target="_blank" rel="noopener">Borji &amp; Co ↗</a>`:""}${p.fragranticaUrl?`<a href="${esc(p.fragranticaUrl)}" target="_blank" rel="noopener">Fragrantica ↗</a>`:""}${p.scentidoUrl?`<a href="${esc(p.scentidoUrl)}" target="_blank" rel="noopener">Scentido ↗</a>`:""}</div></section>`:""}
     <div class="actions">
       <button class="btn primary" onclick="openForm('${esc(p.id)}')">Editar</button>
       ${p.tipo==="desejo"?`<button class="btn" onclick="moveTo('${esc(p.id)}','tenho')">Comprei, mover para a coleção</button>`:`<button class="btn" onclick="moveTo('${esc(p.id)}','desejo')">Mover para desejos</button>`}
@@ -764,8 +767,14 @@ function openForm(id,preset){
       <div class="fetchbox">
         <div class="fetchrow"><label>Link do Fragrantica<input id="f-frag" type="url" inputmode="url" placeholder="https://www.fragrantica.com.br/perfume/…" value="${esc(draft.fragranticaUrl||"")}"></label>
           <button type="button" class="btn" id="b-frag">Buscar acordes</button></div>
-        <div class="fetchrow"><label>Link do Scentido<input id="f-scen" type="url" inputmode="url" placeholder="https://www.scentido.com.br/perfumes-referencia/…" value="${esc(draft.scentidoUrl||"")}"></label>
+        <div class="fetchrow" id="row-scen" ${draft.scentidoUrl?"":"hidden"}><label>Link do Scentido<input id="f-scen" type="url" inputmode="url" placeholder="https://www.scentido.com.br/perfumes-referencia/…" value="${esc(draft.scentidoUrl||"")}"></label>
           <button type="button" class="btn" id="b-scen">Buscar contratipos</button></div>
+        <div class="fetchrow" id="row-borji" ${draft.borjiUrl?"":"hidden"}><label>Link da Borji &amp; Co<input id="f-borji" type="url" inputmode="url" placeholder="https://www.borjieco.com.br/ProdutoId_…" value="${esc(draft.borjiUrl||"")}"></label>
+          <button type="button" class="btn" id="b-borjiurl">Buscar dados</button></div>
+        <div class="links addlinks">
+          <button type="button" class="btn addlink" id="add-scen" ${draft.scentidoUrl?"hidden":""}>+ Link Scentido</button>
+          <button type="button" class="btn addlink" id="add-borji" ${draft.borjiUrl?"hidden":""}>+ Link Borji</button>
+        </div>
         <div class="status" id="fstatus">Cole um link e toque em buscar: o Gemini preenche os campos para vocês conferirem antes de salvar.</div>
         <div id="gsrc"></div>
         <button type="button" class="btn ghost" id="b-showpaste" style="align-self:flex-start;padding:4px 0;font-size:13px">Não encontrou? Colar o texto da página do Fragrantica</button>
@@ -808,6 +817,8 @@ function openForm(id,preset){
   bindDono();
   $("b-frag").onclick=()=>fetchFragrantica();
   $("b-scen").onclick=()=>fetchScentido();
+  $("b-borjiurl").onclick=()=>fetchBorjiLink();
+  [["add-scen","row-scen","f-scen"],["add-borji","row-borji","f-borji"]].forEach(([b,r,i])=>$(b).onclick=()=>{$(r).hidden=false;$(b).hidden=true;$(i).focus()});
   $("b-showpaste").onclick=()=>{$("pastebox").hidden=false;$("b-showpaste").hidden=true;$("f-paste").focus()};
   $("b-pastebtn").onclick=async()=>{try{const t=await navigator.clipboard.readText();if(t)$("f-paste").value=t}catch(e){$("f-paste").focus();toast("Toque e segure no campo e escolha Colar.")}};
   $("b-readpaste").onclick=()=>readPastedFrag();
@@ -822,7 +833,7 @@ function openForm(id,preset){
 }
 function collect(){
   const v=i=>$(i).value.trim();
-  Object.assign(draft,{fragranticaUrl:v("f-frag"),scentidoUrl:v("f-scen"),nome:v("f-nome"),marca:v("f-marca"),categoria:v("f-cat"),concentracao:v("f-conc"),
+  Object.assign(draft,{fragranticaUrl:v("f-frag"),scentidoUrl:v("f-scen"),borjiUrl:v("f-borji"),nome:v("f-nome"),marca:v("f-marca"),categoria:v("f-cat"),concentracao:v("f-conc"),
     inspiradoEm:v("f-insp"),familia:v("f-fam"),tamanhoMl:v("f-ml"),preco:v("f-preco"),notaEle:v("f-ne"),notaEla:v("f-na"),comentarios:v("f-com"),fotoUrl:/^https?:\/\//.test(v("f-fotourl"))?v("f-fotourl"):""});
 }
 function drawPreview(){
@@ -839,6 +850,48 @@ function setStatus(t,cls){const s=$("fstatus");if(!s)return;s.className="status"
 function slugWords(s){return decodeURIComponent(s||"").replace(/\.html?$/,"").replace(/-\d+$/,"").replace(/[-_]+/g," ").trim()}
 function parseFrag(url){try{const u=new URL(url);if(!/fragrantica\./.test(u.hostname))return null;
   const m=u.pathname.match(/\/(?:perfume|perfumes)\/([^/]+)\/([^/]+)/i);if(!m)return null;return {marca:slugWords(m[1]),nome:slugWords(m[2])}}catch(e){return null}}
+function borjiId(u){const m=String(u||"").match(/ProdutoId_(\d+)/i);return m?m[1]:""}
+function parseBorji(url){try{const u=new URL(url);if(!/borjieco\./.test(u.hostname))return null;return {id:borjiId(u.pathname)}}catch(e){return null}}
+let borjiRun=0;
+async function fetchBorjiLink(){
+  collect(); const url=draft.borjiUrl; const info=parseBorji(url);
+  if(!info){setStatus("Esse não parece um link de produto da Borji &amp; Co (www.borjieco.com.br/ProdutoId_…).","err");return}
+  const run=++borjiRun, myDraft=draft, alive=()=>run===borjiRun&&draft===myDraft&&$("pf");
+  const btn=$("b-borjiurl"); btn.disabled=true;
+  // 1) Dados do catálogo, na hora (nome, inspiração, preço), sem gastar o Gemini.
+  const item=info.id&&borji?.itens?.find(x=>borjiId(x.u)===info.id);
+  const set=(id,v,force)=>{const el=$(id);if(el&&v&&(force||!el.value))el.value=v};
+  set("f-marca","Borji & Co",true); set("f-cat","Contratipo",true);
+  if(item){
+    set("f-nome",tcase(item.n)); set("f-insp",item.i);
+    if(draft.tipo==="desejo"&&item.p>0)draft.precos={data:borji.atualizadoEm||Date.now(),fonte:"Borji & Co",ofertas:[{loja:"Borji & Co",preco:item.p,titulo:"",url}]};
+  }
+  drawThumb(); collect();
+  setStatus(`<span class="spin"></span>${item?`${esc(tcase(item.n))}, inspirado em ${esc(item.i)}. Buscando acordes e pirâmide…`:"Lendo a página da Borji…"}`,item?"ok":"");
+  // 2) Acordes e pirâmide: da página da Borji ou, se ela não tiver, do perfume original.
+  const insp=item?.i||draft.inspiradoEm||"";
+  const prompt=`Você organiza fichas de perfumes para um app brasileiro. Este é um contratipo da loja Borji & Co: ${url}${item?` (nome "${tcase(item.n)}", inspirado em "${insp}")`:""}.
+Leia a página do produto. Informe o nome do perfume, em qual perfume original ele é inspirado ("Nome (Marca)") e, se a página mostrar, as notas olfativas e acordes.
+Se a página não trouxer as notas, use os acordes principais e a pirâmide olfativa do perfume original em que ele é inspirado, como aparecem no Fragrantica, e marque "fonte":"original". Se usou as notas da própria página, marque "fonte":"pagina".
+Acordes em ordem de intensidade, com 100 para o primeiro e porcentagens decrescentes.
+Responda SOMENTE com um JSON, sem texto antes ou depois:
+{"nome":"","inspiradoEm":"","concentracao":"","familia":"","acordes":[{"nome":"amadeirado","pct":100}],"piramide":{"topo":[],"coracao":[],"fundo":[]},"fonte":"pagina"}
+${ACC_RULES}`;
+  try{
+    const r=await askGemini(prompt,"webfast",60000);
+    if(!alive())return;
+    const j=r.json||{};
+    set("f-nome",j.nome?tcase(j.nome):""); set("f-insp",j.inspiradoEm);
+    const fromOrig=j.fonte!=="pagina"||!r.urlOk;
+    const ok=applyFrag({...j,nome:$("f-nome").value,marca:"Borji & Co"},{nome:$("f-nome").value,marca:"Borji & Co"},
+      fromOrig?`Acordes e pirâmide do original (${$("f-insp").value||insp}), como referência.`:"Acordes e pirâmide lidos da página da Borji & Co.");
+    if(ok)setStatus(fromOrig?"Pronto. Acordes e pirâmide vieram do perfume original, como referência. Confiram e salvem.":"Pronto: dados lidos da página da Borji. Confiram e salvem.","ok");
+    else setStatus(item?"Nome e inspiração preenchidos. Não encontrei os acordes; se quiserem, colem o link do Fragrantica do original.":"Não consegui ler esse produto. Confiram o link ou preencham à mão.",item?"ok":"err");
+  }catch(e){
+    if(!alive())return;
+    setStatus(item?"Nome, inspiração e preço preenchidos pelo catálogo. Não consegui buscar os acordes agora: "+aiErr(e):aiErr(e),item?"ok":"err");
+  }finally{if(alive())btn.disabled=false}
+}
 function parseScen(url){try{const u=new URL(url);if(!/scentido\./.test(u.hostname))return null;
   const m=u.pathname.match(/\/(perfumes-referencia|perfumes-contratipos)\/([^/?#]+)/);if(!m)return null;return {tipo:m[1]==="perfumes-contratipos"?"contratipo":"original",slug:slugWords(m[2])}}catch(e){return null}}
 
