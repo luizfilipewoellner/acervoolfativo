@@ -147,6 +147,12 @@ form textarea{min-height:70px;resize:vertical}
 .sughead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px}
 .sughead h2{font-family:var(--display);font-style:italic;font-weight:400;font-size:28px;margin:0;line-height:1.1}
 .sughead p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.sugtabs{margin-bottom:16px}
+.iabox{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:6px}
+.iabox textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px;min-height:84px;resize:vertical;color:var(--ink)}
+.iachips{gap:6px}.iachip{border:1px dashed var(--line);background:none;cursor:pointer;font-size:12.5px;padding:4px 10px;color:var(--ink)}
+form .iacheck{display:flex;flex-direction:row;gap:10px;align-items:center;font-size:13px;font-weight:500;color:var(--muted)}
+form .iacheck input{width:20px;height:20px;padding:0;flex:none;accent-color:var(--accent)}
 .sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
 .scard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:9px}
 .scard .meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -393,7 +399,7 @@ const GEMINI_MODEL = "gemini-3.8-flash";
 const USE_GOOGLE_SEARCH = false;
 // 4) Modelo rápido para o preenchimento inicial (sem abrir páginas).
 const GEMINI_FAST_MODEL = "gemini-3.5-flash-lite";
-const APP_VERSION = "v21";
+const APP_VERSION = "v22";
 const FB = "https://www.gstatic.com/firebasejs/13.1.0/";
 
 /* ---------- nuvem (Firebase) ---------- */
@@ -688,21 +694,100 @@ async function shrinkPhoto(file){
 /* ---------- sugestões ---------- */
 let sugDoc={}, sugBusy=false;
 function sugPara(){return state.dono||"casal"}
+let sugMode="auto", iaBusy=false, iaQ="", iaGosto=true;
 function renderSug(){
   $("grid").innerHTML=""; $("empty").hidden=true;
   const el=$("sug"); el.hidden=false;
+  if(el.dataset.mode!==sugMode){
+    el.dataset.mode=sugMode;
+    el.innerHTML=`<div class="seg sugtabs" role="tablist">
+        <label><input type="radio" name="sugmode" value="auto" ${sugMode==="auto"?"checked":""}><span>Para vocês</span></label>
+        <label><input type="radio" name="sugmode" value="pedido" ${sugMode==="pedido"?"checked":""}><span>Pedir à IA</span></label></div>
+      ${sugMode==="pedido"?`<form id="iaform" class="iabox">
+        <label for="ia-q" class="eyebrow">O que vocês procuram?</label>
+        <textarea id="ia-q" placeholder="Ex.: Sugira um perfume com base nas notas do Mon Paris, mas menos doce e mais barato">${esc(iaQ)}</textarea>
+        <div class="chips iachips">${["Parecido com o Bleu de Chanel, mas para o verão","Notas de baunilha e café, para a noite","Nacional até R$ 200 que dure bastante","Presente para ela, floral e elegante","Algo com oud que não seja enjoativo"].map(t=>`<button type="button" class="chip iachip">${esc(t)}</button>`).join("")}</div>
+        <label class="iacheck"><input type="checkbox" id="ia-gosto" ${iaGosto?"checked":""}> Levar em conta o gosto de vocês (coleção, desejos e notas)</label>
+        <div class="links"><button class="btn primary" type="submit" id="b-ia">Buscar sugestões</button></div>
+        <div class="status" id="iastatus"></div></form>`:`<div id="sug-head"></div>`}
+      <div id="sug-list"></div>`;
+    el.querySelectorAll('input[name="sugmode"]').forEach(r=>r.onchange=()=>{sugMode=r.value;render()});
+    if(sugMode==="pedido"){
+      $("ia-q").oninput=e=>iaQ=e.target.value;
+      $("ia-gosto").onchange=e=>iaGosto=e.target.checked;
+      el.querySelectorAll(".iachip").forEach(c=>c.onclick=()=>{$("ia-q").value=c.textContent;iaQ=c.textContent;$("ia-q").focus()});
+      $("iaform").onsubmit=e=>{e.preventDefault();pedirIA()};
+    }
+  }
+  if(sugMode==="pedido"){
+    const d=sugDoc.pedido||{}, itens=d.itens||[];
+    const b=$("b-ia"); if(b){b.disabled=iaBusy;b.innerHTML=iaBusy?`<span class="spin"></span>${itens.length?itens.length+" sugestões…":"Pensando…"}`:"Buscar sugestões"}
+    $("sug-list").innerHTML=itens.length?`<p class="sub" style="margin:18px 0 10px">Resultado para: <b>${esc(d.q||"")}</b></p><div class="sgrid">${itens.map((x,i)=>sugCard(x,i,"pedido")).join("")}</div>`:"";
+    return;
+  }
   const para=sugPara(), alvo={ele:"Luiz Filipe",ela:"Heloíse",casal:"vocês dois"}[para];
   const d=(sugDoc.porPara||{})[para]||{}, itens=d.itens||[];
   const quando=d.data?new Date(d.data).toLocaleString("pt-BR",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"";
   const temBase=state.items.length>0;
-  el.innerHTML=`<div class="sughead"><div><h2>Sugestões para ${esc(alvo)}</h2>
+  $("sug-head").innerHTML=`<div class="sughead"><div><h2>Sugestões para ${esc(alvo)}</h2>
       <p>${temBase?`Com base nos perfumes ${para==="casal"?"da coleção e dos desejos":"de "+esc(alvo)+" e nos desejos"}, com as notas que vocês deram.${quando?" Atualizado em "+esc(quando)+".":""}`:"Adicionem alguns perfumes à coleção ou aos desejos para o app entender o gosto de vocês."}</p>
       <div class="status" id="sugstatus"></div></div>
-    <button class="btn primary" id="b-sug" ${!temBase||sugBusy?"disabled":""}>${sugBusy?`<span class="spin"></span>${itens.length?itens.length+" de 8…":"Pensando…"}`:itens.length?"Atualizar sugestões":"Gerar sugestões"}</button></div>
-    ${itens.length?`<div class="sgrid">${itens.map((x,i)=>sugCard(x,i)).join("")}</div>`:temBase?`<div class="notice">Toquem em "Gerar sugestões" para receber ideias de perfumes. Use o filtro acima para ver sugestões só para Luiz Filipe ou só para Heloíse.</div>`:""}`;
+    <button class="btn primary" id="b-sug" ${!temBase||sugBusy?"disabled":""}>${sugBusy?`<span class="spin"></span>${itens.length?itens.length+" de 8…":"Pensando…"}`:itens.length?"Atualizar sugestões":"Gerar sugestões"}</button></div>`;
+  $("sug-list").innerHTML=itens.length?`<div class="sgrid">${itens.map((x,i)=>sugCard(x,i,"auto")).join("")}</div>`:temBase?`<div class="notice">Toquem em "Gerar sugestões" para receber ideias de perfumes. Use o filtro acima para ver sugestões só para Luiz Filipe ou só para Heloíse.</div>`:"";
   const b=$("b-sug"); if(b)b.onclick=()=>gerarSugestoes();
 }
-function sugCard(x,i){
+async function pedirIA(){
+  if(iaBusy)return;
+  const q=($("ia-q")?.value||"").trim(); iaQ=q;
+  if(q.length<4){const st=$("iastatus");if(st){st.className="status err";st.textContent="Escrevam o que procuram, por exemplo: notas de baunilha e café."}return}
+  const para=sugPara(), {tem,des}=perfilTxt(para);
+  const gosto=iaGosto?`
+Para contexto, o gosto de ${{ele:"Luiz Filipe",ela:"Heloíse",casal:"Luiz Filipe e Heloíse"}[para]} (notas altas = gostam mais):
+Já têm:
+${tem}
+Desejos:
+${des}
+Não sugira perfumes que eles já têm ou desejam.`:"";
+  const prompt=`Você é consultor de perfumaria e conhece o mercado brasileiro (nicho, designers, nacionais, árabes e contratipos).
+Pedido do casal: "${q}"
+Sugira até 6 perfumes REAIS e conhecidos que atendam bem a esse pedido. Se o pedido citar um perfume, use as notas e o estilo dele como referência. Respeite limites de preço, estação ou ocasião que o pedido mencionar.${gosto}
+Formato: UMA sugestão por linha, cada linha um JSON completo, sem nenhum outro texto, sem lista e sem cercas de código:
+{"nome":"","marca":"","categoria":"Nicho|Designer|Nacional|Árabe|Contratipo","para":"ele|ela|casal","acordes":["",""],"motivo":"uma frase curta explicando como atende ao pedido"}`;
+  iaBusy=true;
+  const have=new Set(state.items.map(p=>plain(p.nome+" "+p.marca)));
+  const itens=[], seen=new Set(), old=sugDoc.pedido;
+  const show=()=>{sugDoc={...sugDoc,pedido:{q,data:Date.now(),itens:itens.slice()}};render()};
+  const take=line=>{
+    line=line.trim().replace(/^[-*,\[\]\s`]+|[,\]`\s]+$/g,""); if(!line.startsWith("{"))return;
+    let x; try{x=JSON.parse(line)}catch(e){return}
+    if(!x||!x.nome)return;
+    const k=plain(x.nome+" "+(x.marca||""));
+    if((iaGosto&&have.has(k))||seen.has(k)||itens.length>=8)return;
+    seen.add(k); itens.push(normSug(x,para)); show();
+  };
+  show();
+  try{
+    const run=async kind=>{
+      const g=await gemini(kind);
+      const res=await g.model.generateContentStream(prompt);
+      let buf="";
+      for await(const ch of res.stream){let t="";try{t=ch.text()}catch(e){}buf+=t;const parts=buf.split("\n");buf=parts.pop();parts.forEach(take)}
+      take(buf);
+      if(!itens.length){let full="";try{full=(await res.response).text()}catch(e){}const j=parseJSON(full);(j?.sugestoes||(Array.isArray(j)?j:[])).forEach(x=>take(JSON.stringify(x)))}
+    };
+    try{await run("fast")}
+    catch(e){if(!itens.length&&!/offline|Failed to fetch|App Check/i.test(String(e?.message||"")))await run("think");else throw e}
+    if(!itens.length)throw new Error("Não encontrei sugestões para esse pedido. Tentem descrever de outro jeito.");
+    iaBusy=false; show();
+    fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{pedido:sugDoc.pedido},{merge:true}).catch(()=>{});
+  }catch(e){
+    iaBusy=false;
+    if(!itens.length)sugDoc={...sugDoc,pedido:old};
+    render();
+    const st=$("iastatus"); if(st){st.className="status err";st.innerHTML=/Não encontrei/.test(e?.message||"")?esc(e.message):aiErr(e)}
+  }
+}
+function sugCard(x,i,src="auto"){
   const alt=borjiMatches({nome:x.nome,marca:x.marca})[0];
   const q=encodeURIComponent(`${x.nome} ${x.marca} fragrantica`);
   return `<div class="scard">
@@ -711,9 +796,9 @@ function sugCard(x,i){
     ${(x.acordes||[]).length?`<div class="chips">${x.acordes.slice(0,4).map(a=>`<span class="chip" style="border-left:6px solid ${accColor(a)}">${esc(a)}</span>`).join("")}</div>`:""}
     <div class="why">${esc(x.motivo||"")}</div>
     ${alt?`<div class="borjialt">Na Borji: <b>${esc(tcase(alt.n))}</b>${alt.p>0?" · "+esc(money(alt.p)):""}</div>`:""}
-    <div class="acts"><button class="btn" onclick="sugToWish(${i})">+ Desejos</button>
+    <div class="acts"><button class="btn" onclick="sugToWish(${i},'${src}')">+ Desejos</button>
       <a class="btn ghost" href="https://www.google.com/search?q=${q}" target="_blank" rel="noopener">Ver ficha ↗</a>
-      <button class="btn ghost" onclick="sugReject(${i})">Não curti</button></div>
+      <button class="btn ghost" onclick="sugReject(${i},'${src}')">Não curti</button></div>
   </div>`;
 }
 function perfilTxt(para){
@@ -789,28 +874,27 @@ Formato: UMA sugestão por linha, cada linha um JSON completo, sem nenhum outro 
     if(itens.length)fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara:sugDoc.porPara},{merge:true}).catch(()=>{});
   }
 }
-function sugUpdateList(fn){
+function sugGet(src){return src==="pedido"?(sugDoc.pedido?.itens||[]):((sugDoc.porPara||{})[sugPara()]?.itens||[])}
+function sugRemove(src,i,extra={}){
+  if(src==="pedido"){const cur=sugDoc.pedido;if(!cur)return;const itens=cur.itens.slice();itens.splice(i,1);sugDoc={...sugDoc,...extra,pedido:{...cur,itens}};render();
+    fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{pedido:sugDoc.pedido,...extra},{merge:true}).catch(()=>{});return}
   const para=sugPara(), cur=(sugDoc.porPara||{})[para]; if(!cur)return;
-  const itens=fn(cur.itens.slice());
+  const itens=cur.itens.slice(); itens.splice(i,1);
   const porPara={...sugDoc.porPara,[para]:{...cur,itens}};
-  sugDoc={...sugDoc,porPara}; render();
-  return porPara;
+  sugDoc={...sugDoc,...extra,porPara}; render();
+  fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara,...extra},{merge:true}).catch(()=>{});
 }
-async function sugToWish(i){
-  const x=((sugDoc.porPara||{})[sugPara()]?.itens||[])[i]; if(!x)return;
+async function sugToWish(i,src="auto"){
+  const x=sugGet(src)[i]; if(!x)return;
   const ok=await save(null,{tipo:"desejo",nome:x.nome,marca:x.marca,categoria:["Nicho","Designer","Nacional","Árabe","Contratipo"].includes(x.categoria)?x.categoria:"",dono:x.para||"casal",
     acordes:(x.acordes||[]).map((a,k)=>({nome:a,pct:Math.max(40,100-k*20)})),piramide:{},comentarios:"Sugestão do app: "+x.motivo,fonteDados:"Acordes aproximados da sugestão. Colem o link do Fragrantica para completar."});
   if(!ok)return;
-  const porPara=sugUpdateList(l=>{l.splice(i,1);return l});
-  if(porPara)fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara},{merge:true}).catch(()=>{});
+  sugRemove(src,i);
   toast(`${x.nome} foi para a lista de desejos`);
 }
-function sugReject(i){
-  const x=((sugDoc.porPara||{})[sugPara()]?.itens||[])[i]; if(!x)return;
-  const rejeitados=[...(sugDoc.rejeitados||[]),`${x.nome} (${x.marca})`].slice(-100);
-  sugDoc={...sugDoc,rejeitados};
-  const porPara=sugUpdateList(l=>{l.splice(i,1);return l});
-  fb.setDoc(fb.doc(fb.db,"lojas","sugestoes"),{porPara,rejeitados},{merge:true}).catch(()=>{});
+function sugReject(i,src="auto"){
+  const x=sugGet(src)[i]; if(!x)return;
+  sugRemove(src,i,{rejeitados:[...(sugDoc.rejeitados||[]),`${x.nome} (${x.marca})`].slice(-100)});
   toast("Anotado. Não vamos sugerir esse de novo.");
 }
 
